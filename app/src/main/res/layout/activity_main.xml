@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="32dp">
+
+    <!-- appName -->
+    <TextView
+        android:id="@+id/textAppName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Sharely"
+        android:textSize="36sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <!-- tagName -->
+    <TextView
+        android:id="@+id/textSlogan"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Don't buy it, just borrow it!"
+        android:textSize="18sp"
+        android:layout_marginBottom="40dp" />
+
+    <!-- button: browseItems -->
+    <Button
+        android:id="@+id/buttonBrowse"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Browse Items"
+        android:layout_marginBottom="16dp" />
+
+    <!-- button: listAnItem -->
+    <Button
+        android:id="@+id/buttonListItem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="List an Item" />
+
+</LinearLayout>
