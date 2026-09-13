@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "639728465270",
+    "project_id": "sharely-7205c",
+    "storage_bucket": "sharely-7205c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:639728465270:android:34e21256be615de4317657",
+        "android_client_info": {
+          "package_name": "com.example.sharely"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAo_a5uuBj7zAb_7uUc9PqH8yaZmAaZWXQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
