@@ -9,4 +9,8 @@ public class AvailabilitySlot {
         this.startTime = startTime;
         this.endTime = endTime;
     }
+
+    public boolean isValid() {
+        return startTime < endTime;
+    }
 }
