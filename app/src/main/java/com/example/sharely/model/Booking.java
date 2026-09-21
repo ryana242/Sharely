@@ -45,4 +45,11 @@ public class Booking {
     public BookingStatus getStatus() {
         return status;
     }
+
+    public boolean conflictsWith(Booking other) {
+        boolean sameItem = itemId.equals(other.itemId);
+        boolean overlappingTime = bookingSlot.overlaps(other.bookingSlot);
+
+        return sameItem && overlappingTime;
+    }
 }

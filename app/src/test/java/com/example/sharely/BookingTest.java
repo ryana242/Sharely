@@ -83,4 +83,61 @@ public class BookingTest {
                 booking.getStatus()
         );
     }
+
+    @Test
+    public void sameItemAndOverlappingTime_hasConflict() {
+        Booking first = new Booking(
+                "B001",
+                "U001",
+                "ITEM1",
+                new AvailabilitySlot(1000, 5000)
+        );
+
+        Booking second = new Booking(
+                "B002",
+                "U002",
+                "ITEM1",
+                new AvailabilitySlot(3000, 7000)
+        );
+
+        assertEquals(true, first.conflictsWith(second));
+    }
+
+    @Test
+    public void sameItemAndSeparateTime_hasNoConflict() {
+        Booking first = new Booking(
+                "B001",
+                "U001",
+                "ITEM1",
+                new AvailabilitySlot(1000, 5000)
+        );
+
+        Booking second = new Booking(
+                "B002",
+                "U002",
+                "ITEM1",
+                new AvailabilitySlot(6000, 9000)
+        );
+
+        assertEquals(false, first.conflictsWith(second));
+    }
+
+    @Test
+    public void differentItemsAndOverlappingTime_hasNoConflict() {
+        Booking first = new Booking(
+                "B001",
+                "U001",
+                "ITEM1",
+                new AvailabilitySlot(1000, 5000)
+        );
+
+        Booking second = new Booking(
+                "B002",
+                "U002",
+                "ITEM2",
+                new AvailabilitySlot(3000, 7000)
+        );
+
+        assertEquals(false, first.conflictsWith(second));
+    }
 }
