@@ -15,6 +15,7 @@
         android:layout_marginBottom="12dp" />
 
     <TextView
+        android:id="@+id/textItemName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Cordless Drill"
@@ -22,6 +23,7 @@
         android:textStyle="bold" />
 
     <TextView
+        android:id="@+id/textItemPrice"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="$5 per day"
@@ -29,12 +31,14 @@
         android:layout_marginTop="12dp" />
 
     <TextView
+        android:id="@+id/textItemInfo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="1.2 km away • ★ 4.8"
         android:layout_marginTop="10dp" />
 
     <TextView
+        android:id="@+id/textItemDescription"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="A reliable cordless drill suitable for small home projects."
