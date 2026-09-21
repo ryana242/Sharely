@@ -64,6 +64,19 @@ public class AddItemActivity extends AppCompatActivity {
             if (priceText.isEmpty()) {
                 price.setError("Price is required");
                 isValid = false;
+            } else {
+                try {
+                    double priceValue = Double.parseDouble(priceText);
+
+                    if (priceValue <= 0) {
+                        price.setError("Price must be greater than 0");
+                        isValid = false;
+                    }
+
+                } catch (NumberFormatException e) {
+                    price.setError("Enter a valid price");
+                    isValid = false;
+                }
             }
 
             if (locationText.isEmpty()) {
