@@ -11,6 +11,15 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.content.Intent;
 
+import android.widget.Toast;
+
+import com.example.sharely.model.AvailabilitySlot;
+import com.example.sharely.model.Booking;
+import com.example.sharely.service.BookingService;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class ItemDetailsActivity extends AppCompatActivity {
 
     @Override
@@ -39,5 +48,62 @@ public class ItemDetailsActivity extends AppCompatActivity {
         backButton.setOnClickListener(v -> {
             finish();
         });
+
+        Button requestBookingButton =
+                findViewById(R.id.buttonRequestBooking);
+
+        requestBookingButton.setOnClickListener(v -> {
+
+            AvailabilitySlot requestedSlot =
+                    new AvailabilitySlot(1000, 5000);
+
+            Booking newBooking = new Booking(
+                    "B002",
+                    "CURRENT_USER",
+                    "ITEM1",
+                    requestedSlot
+            );
+
+            List<Booking> existingBookings = new ArrayList<>();
+
+            BookingService bookingService = new BookingService();
+
+            boolean accepted =
+                    bookingService.acceptBooking(
+                            newBooking,
+                            existingBookings
+                    );
+
+            if (accepted) {
+                Toast.makeText(
+                        ItemDetailsActivity.this,
+                        "Booking accepted",
+                        Toast.LENGTH_SHORT
+                ).show();
+            } else {
+                Toast.makeText(
+                        ItemDetailsActivity.this,
+                        "Booking unavailable",
+                        Toast.LENGTH_SHORT
+                ).show();
+            }
+        });
+
+//        Booking newBooking = new Booking(
+//                "B002",
+//                "CURRENT_USER",
+//                "ITEM1",
+//                requestedSlot
+//        );
+//
+//        List<Booking> existingBookings = new ArrayList<>();
+//
+//        BookingService bookingService = new BookingService();
+//
+//        boolean accepted =
+//                bookingService.acceptBooking(
+//                        newBooking,
+//                        existingBookings
+//                );
     }
 }
