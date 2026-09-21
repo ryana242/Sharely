@@ -50,6 +50,8 @@ public class ItemDetailsActivity extends AppCompatActivity {
 
         Intent intent = getIntent();
 
+        String itemId = intent.getStringExtra("itemId");
+
         itemName.setText(intent.getStringExtra("name"));
         itemPrice.setText(intent.getStringExtra("price"));
         itemInfo.setText(intent.getStringExtra("info"));
@@ -85,7 +87,7 @@ public class ItemDetailsActivity extends AppCompatActivity {
             Booking newBooking = new Booking(
                     "B002",
                     "CURRENT_USER",
-                    "ITEM1",
+                    itemId,
                     requestedSlot
             );
 

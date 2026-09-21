@@ -27,6 +27,7 @@ public class BrowseActivity extends AppCompatActivity {
         viewDrillButton.setOnClickListener(v -> {
             Intent intent = new Intent(BrowseActivity.this, ItemDetailsActivity.class);
 
+            intent.putExtra("itemId", "ITEM1");
             intent.putExtra("name", "Cordless Drill");
             intent.putExtra("price", "$5 per day");
             intent.putExtra("info", "1.2 km away • ★ 4.8");
@@ -43,6 +44,7 @@ public class BrowseActivity extends AppCompatActivity {
         viewTentButton.setOnClickListener(v -> {
             Intent intent = new Intent(BrowseActivity.this, ItemDetailsActivity.class);
 
+            intent.putExtra("itemId", "ITEM2");
             intent.putExtra("name", "Camping Tent");
             intent.putExtra("price", "$8 per day");
             intent.putExtra("info", "2.4 km away • ★ 4.6");
