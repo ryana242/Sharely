@@ -35,6 +35,13 @@ public class Booking {
         }
     }
 
+    public void cancelBooking() {
+        if (status == BookingStatus.PENDING
+                || status == BookingStatus.ACCEPTED) {
+            status = BookingStatus.CANCELLED;
+        }
+    }
+
     public BookingStatus getStatus() {
         return status;
     }

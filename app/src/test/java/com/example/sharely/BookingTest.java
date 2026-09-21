@@ -52,4 +52,35 @@ public class BookingTest {
                 booking.getStatus()
         );
     }
+
+    @Test
+    public void pendingBooking_canBeCancelled() {
+        AvailabilitySlot slot = new AvailabilitySlot(1000, 5000);
+
+        Booking booking =
+                new Booking("B001", "U001", "I001", slot);
+
+        booking.cancelBooking();
+
+        assertEquals(
+                BookingStatus.CANCELLED,
+                booking.getStatus()
+        );
+    }
+
+    @Test
+    public void acceptedBooking_canBeCancelled() {
+        AvailabilitySlot slot = new AvailabilitySlot(1000, 5000);
+
+        Booking booking =
+                new Booking("B001", "U001", "I001", slot);
+
+        booking.acceptBooking();
+        booking.cancelBooking();
+
+        assertEquals(
+                BookingStatus.CANCELLED,
+                booking.getStatus()
+        );
+    }
 }
