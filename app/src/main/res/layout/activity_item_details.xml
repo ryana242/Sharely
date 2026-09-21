@@ -45,6 +45,36 @@
         android:textSize="16sp"
         android:layout_marginTop="20dp" />
 
+    <TextView
+        android:id="@+id/textStartTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Start: Not selected"
+        android:textSize="16sp"
+        android:layout_marginTop="24dp" />
+
+    <Button
+        android:id="@+id/buttonSelectStart"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Select Start Date &amp; Time"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/textEndTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="End: Not selected"
+        android:textSize="16sp"
+        android:layout_marginTop="16dp" />
+
+    <Button
+        android:id="@+id/buttonSelectEnd"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Select End Date &amp; Time"
+        android:layout_marginTop="8dp" />
+
     <Button
         android:id="@+id/buttonRequestBooking"
         android:layout_width="match_parent"
