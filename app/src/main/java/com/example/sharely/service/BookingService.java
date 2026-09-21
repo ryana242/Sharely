@@ -11,6 +11,10 @@ public class BookingService {
             List<Booking> existingBookings
     ) {
 
+        if (!newBooking.hasValidTimeSlot()) {
+            return false;
+        }
+
         for (Booking existingBooking : existingBookings) {
 
             if (existingBooking.blocksAvailability()
@@ -20,6 +24,19 @@ public class BookingService {
             }
         }
 
+        return true;
+    }
+
+    public boolean acceptBooking(
+            Booking newBooking,
+            List<Booking> existingBookings
+    ) {
+
+        if (!canAcceptBooking(newBooking, existingBookings)) {
+            return false;
+        }
+
+        newBooking.acceptBooking();
         return true;
     }
 }

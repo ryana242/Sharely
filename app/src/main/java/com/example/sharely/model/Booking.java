@@ -46,6 +46,10 @@ public class Booking {
         return status;
     }
 
+    public boolean hasValidTimeSlot() {
+        return bookingSlot != null && bookingSlot.isValid();
+    }
+
     public boolean conflictsWith(Booking other) {
         boolean sameItem = itemId.equals(other.itemId);
         boolean overlappingTime = bookingSlot.overlaps(other.bookingSlot);
