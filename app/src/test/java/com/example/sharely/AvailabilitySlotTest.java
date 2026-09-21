@@ -22,4 +22,28 @@ public class AvailabilitySlotTest {
 
         assertFalse(slot.isValid());
     }
+
+    @Test
+    public void overlappingSlots_returnsTrue() {
+        AvailabilitySlot first = new AvailabilitySlot(1000, 5000);
+        AvailabilitySlot second = new AvailabilitySlot(3000, 7000);
+
+        assertTrue(first.overlaps(second));
+    }
+
+    @Test
+    public void separateSlots_returnsFalse() {
+        AvailabilitySlot first = new AvailabilitySlot(1000, 5000);
+        AvailabilitySlot second = new AvailabilitySlot(6000, 9000);
+
+        assertFalse(first.overlaps(second));
+    }
+
+    @Test
+    public void touchingSlots_returnsFalse() {
+        AvailabilitySlot first = new AvailabilitySlot(1000, 5000);
+        AvailabilitySlot second = new AvailabilitySlot(5000, 9000);
+
+        assertFalse(first.overlaps(second));
+    }
 }

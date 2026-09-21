@@ -13,4 +13,8 @@ public class AvailabilitySlot {
     public boolean isValid() {
         return startTime < endTime;
     }
+    public boolean overlaps(AvailabilitySlot other) {
+        return startTime < other.endTime
+                && endTime > other.startTime;
+    }
 }
