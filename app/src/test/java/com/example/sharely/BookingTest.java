@@ -140,4 +140,45 @@ public class BookingTest {
 
         assertEquals(false, first.conflictsWith(second));
     }
+
+    @Test
+    public void acceptedBooking_blocksAvailability() {
+        Booking booking = new Booking(
+                "B001",
+                "U001",
+                "ITEM1",
+                new AvailabilitySlot(1000, 5000)
+        );
+
+        booking.acceptBooking();
+
+        assertEquals(true, booking.blocksAvailability());
+    }
+
+    @Test
+    public void pendingBooking_doesNotBlockAvailability() {
+        Booking booking = new Booking(
+                "B001",
+                "U001",
+                "ITEM1",
+                new AvailabilitySlot(1000, 5000)
+        );
+
+        assertEquals(false, booking.blocksAvailability());
+    }
+
+    @Test
+    public void cancelledBooking_doesNotBlockAvailability() {
+        Booking booking = new Booking(
+                "B001",
+                "U001",
+                "ITEM1",
+                new AvailabilitySlot(1000, 5000)
+        );
+
+        booking.acceptBooking();
+        booking.cancelBooking();
+
+        assertEquals(false, booking.blocksAvailability());
+    }
 }

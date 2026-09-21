@@ -52,4 +52,9 @@ public class Booking {
 
         return sameItem && overlappingTime;
     }
+
+    public boolean blocksAvailability() {
+        return status == BookingStatus.ACCEPTED
+                || status == BookingStatus.ACTIVE;
+    }
 }
