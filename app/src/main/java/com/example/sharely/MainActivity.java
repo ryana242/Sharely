@@ -9,7 +9,8 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import android.widget.Button;
-import android.widget.Toast;
+//import android.widget.Toast;
+import android.content.Intent;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -22,11 +23,8 @@ public class MainActivity extends AppCompatActivity {
         Button browseButton = findViewById(R.id.buttonBrowse);
 
         browseButton.setOnClickListener(v -> {
-            Toast.makeText(
-                    MainActivity.this,
-                    "Browse Items clicked",
-                    Toast.LENGTH_SHORT
-            ).show();
+            Intent intent = new Intent(MainActivity.this, BrowseActivity.class);
+            startActivity(intent);
         });
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
