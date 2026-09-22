@@ -3,138 +3,343 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/browseMain"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/sharely_background"
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:paddingLeft="22dp"
+        android:paddingTop="20dp"
+        android:paddingRight="22dp"
+        android:paddingBottom="36dp">
 
-        <Button
-            android:id="@+id/buttonBack"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="← Back"
-            android:layout_marginBottom="12dp" />
+
+        <!-- Top bar -->
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/buttonBack"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:backgroundTint="@android:color/transparent"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:text="←"
+                android:textAllCaps="false"
+                android:textColor="@color/sharely_text_primary"
+                android:textSize="24sp" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="Browse"
+                android:textColor="@color/sharely_text_primary"
+                android:textSize="26sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+
+        <!-- Intro -->
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Browse Items"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="20dp" />
+            android:layout_marginTop="18dp"
+            android:text="Find something nearby"
+            android:textColor="@color/sharely_text_primary"
+            android:textSize="25sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:text="Search available items and find what works for you."
+            android:textColor="@color/sharely_text_secondary"
+            android:textSize="15sp" />
+
+
+        <!-- Search -->
 
         <EditText
             android:id="@+id/editSearch"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Search for drills, books, camping gear..."
+            android:layout_height="58dp"
+            android:layout_marginTop="22dp"
+            android:background="@drawable/search_field"
+            android:drawableStart="@drawable/ic_search"
+            android:drawablePadding="12dp"
+            android:hint="Search Sharely"
             android:inputType="text"
-            android:padding="12dp"
-            android:layout_marginBottom="12dp" />
+            android:paddingLeft="18dp"
+            android:paddingRight="18dp"
+            android:singleLine="true"
+            android:textColor="@color/sharely_text_primary"
+            android:textColorHint="@color/sharely_text_secondary"
+            android:textSize="15sp" />
 
-        <LinearLayout
+
+        <!-- Filters -->
+
+        <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="24dp">
+            android:layout_marginTop="16dp"
+            android:scrollbars="none">
 
-            <Button
-                android:id="@+id/buttonCategory"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Category" />
-
-            <Button
-                android:id="@+id/buttonFilter"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Filter" />
-
-        </LinearLayout>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Nearby Items"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="12dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:background="#EEEEEE"
-            android:layout_marginBottom="16dp">
-
-            <TextView
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Cordless Drill"
-                android:textSize="18sp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/buttonCategory"
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:background="@drawable/filter_chip"
+                    android:backgroundTint="@null"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="16dp"
+                    android:text="Category"
+                    android:textAllCaps="false"
+                    android:textColor="@color/sharely_text_primary"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/buttonFilter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/filter_chip"
+                    android:backgroundTint="@null"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="16dp"
+                    android:text="Distance"
+                    android:textAllCaps="false"
+                    android:textColor="@color/sharely_text_primary"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/buttonPrice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/filter_chip"
+                    android:backgroundTint="@null"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="16dp"
+                    android:text="Price"
+                    android:textAllCaps="false"
+                    android:textColor="@color/sharely_text_primary"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/buttonAvailability"
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/filter_chip"
+                    android:backgroundTint="@null"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="16dp"
+                    android:text="Availability"
+                    android:textAllCaps="false"
+                    android:textColor="@color/sharely_text_primary"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
+
+        </HorizontalScrollView>
+
+
+        <!-- Results heading -->
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Available near you"
+                android:textColor="@color/sharely_text_primary"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="$5 per day"
-                android:textSize="16sp"
-                android:layout_marginTop="6dp" />
+                android:text="2 items"
+                android:textColor="@color/sharely_text_secondary"
+                android:textSize="13sp" />
 
-            <TextView
-                android:layout_width="wrap_content"
+        </LinearLayout>
+
+
+        <!-- Drill card -->
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
+            android:background="@drawable/card_surface"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="170dp"
+                android:background="@drawable/item_image_placeholder" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="1.2 km away • ★ 4.8"
-                android:layout_marginTop="6dp" />
+                android:layout_marginTop="15dp"
+                android:gravity="top"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Cordless Drill"
+                        android:textColor="@color/sharely_text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="★ 4.8  ·  1.2 km away"
+                        android:textColor="@color/sharely_text_secondary"
+                        android:textSize="13sp" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="$5 / day"
+                    android:textColor="@color/sharely_primary"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
 
             <Button
                 android:id="@+id/buttonViewDrill"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="View Details"
-                android:layout_marginTop="10dp" />
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/button_primary"
+                android:backgroundTint="@null"
+                android:text="View details"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white"
+                android:textSize="15sp"
+                android:textStyle="bold" />
 
         </LinearLayout>
+
+
+        <!-- Tent card -->
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/card_surface"
             android:orientation="vertical"
-            android:padding="16dp"
-            android:background="#EEEEEE">
+            android:padding="14dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Camping Tent"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="170dp"
+                android:background="@drawable/item_image_placeholder" />
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="$8 per day"
-                android:textSize="16sp"
-                android:layout_marginTop="6dp" />
+                android:layout_marginTop="15dp"
+                android:gravity="top"
+                android:orientation="horizontal">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="2.4 km away • ★ 4.6"
-                android:layout_marginTop="6dp" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Camping Tent"
+                        android:textColor="@color/sharely_text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="★ 4.6  ·  2.4 km away"
+                        android:textColor="@color/sharely_text_secondary"
+                        android:textSize="13sp" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="$8 / day"
+                    android:textColor="@color/sharely_primary"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
 
             <Button
                 android:id="@+id/buttonViewTent"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="View Details"
-                android:layout_marginTop="10dp" />
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/button_primary"
+                android:backgroundTint="@null"
+                android:text="View details"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white"
+                android:textSize="15sp"
+                android:textStyle="bold" />
 
         </LinearLayout>
 
