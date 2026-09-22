@@ -13,6 +13,8 @@ import android.widget.Button;
 
 import android.widget.LinearLayout;
 
+import android.widget.TextView;
+
 public class HomeActivity extends AppCompatActivity {
 
     @Override
@@ -42,6 +44,28 @@ public class HomeActivity extends AppCompatActivity {
         listButton.setOnClickListener(v -> {
             Intent intent =
                     new Intent(HomeActivity.this, AddItemActivity.class);
+
+            startActivity(intent);
+        });
+
+        LinearLayout searchHome =
+                findViewById(R.id.searchHome);
+
+        TextView seeAllText =
+                findViewById(R.id.textSeeAll);
+
+        searchHome.setOnClickListener(v -> {
+            Intent intent =
+                    new Intent(HomeActivity.this, BrowseActivity.class);
+
+            intent.putExtra("focusSearch", true);
+
+            startActivity(intent);
+        });
+
+        seeAllText.setOnClickListener(v -> {
+            Intent intent =
+                    new Intent(HomeActivity.this, BrowseActivity.class);
 
             startActivity(intent);
         });

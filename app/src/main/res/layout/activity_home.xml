@@ -16,6 +16,7 @@
         android:paddingRight="22dp"
         android:paddingBottom="32dp">
 
+
         <!-- Top bar -->
 
         <LinearLayout
@@ -75,7 +76,8 @@
             android:layout_marginTop="24dp"
             android:orientation="horizontal">
 
-            <!-- Borrow -->
+
+            <!-- Find -->
 
             <LinearLayout
                 android:id="@+id/buttonBrowseHome"
@@ -173,6 +175,129 @@
                     android:text="→"
                     android:textColor="@color/sharely_primary"
                     android:textSize="24sp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+
+        <!-- Search -->
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:text="Search Sharely"
+            android:textColor="@color/sharely_text_primary"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/searchHome"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/card_surface"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingLeft="18dp"
+            android:paddingRight="18dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:contentDescription="Search"
+                android:src="@drawable/ic_search" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:text="What are you looking for?"
+                android:textColor="@color/sharely_text_secondary"
+                android:textSize="15sp" />
+
+        </LinearLayout>
+
+
+        <!-- Nearby -->
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Nearby"
+                android:textColor="@color/sharely_text_primary"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/textSeeAll"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="See all"
+                android:textColor="@color/sharely_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+
+        <!-- Nearby item preview -->
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/card_surface"
+            android:orientation="horizontal"
+            android:padding="14dp">
+
+            <View
+                android:layout_width="92dp"
+                android:layout_height="92dp"
+                android:background="@color/sharely_primary" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="16dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Cordless Drill"
+                    android:textColor="@color/sharely_text_primary"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:text="$5 / day"
+                    android:textColor="@color/sharely_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="1.2 km away  ·  ★ 4.8"
+                    android:textColor="@color/sharely_text_secondary"
+                    android:textSize="13sp" />
 
             </LinearLayout>
 
