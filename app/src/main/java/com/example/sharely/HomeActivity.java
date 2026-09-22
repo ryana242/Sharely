@@ -11,6 +11,8 @@ import androidx.core.view.WindowInsetsCompat;
 import android.content.Intent;
 import android.widget.Button;
 
+import android.widget.LinearLayout;
+
 public class HomeActivity extends AppCompatActivity {
 
     @Override
@@ -24,10 +26,10 @@ public class HomeActivity extends AppCompatActivity {
             return insets;
         });
 
-        Button browseButton =
+        LinearLayout browseButton =
                 findViewById(R.id.buttonBrowseHome);
 
-        Button listButton =
+        LinearLayout listButton =
                 findViewById(R.id.buttonListHome);
 
         browseButton.setOnClickListener(v -> {
