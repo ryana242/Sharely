@@ -2,4 +2,11 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="sharely_primary">#216869</color>
+    <color name="sharely_primary_dark">#174A4B</color>
+    <color name="sharely_accent">#49A078</color>
+    <color name="sharely_background">#F6F8F7</color>
+    <color name="sharely_surface">#FFFFFF</color>
+    <color name="sharely_text_primary">#172121</color>
+    <color name="sharely_text_secondary">#667573</color>
 </resources>

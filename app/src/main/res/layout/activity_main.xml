@@ -6,66 +6,41 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    android:padding="32dp">
+    android:padding="28dp"
+    android:background="@color/sharely_background">
 
-    <!-- appName -->
     <TextView
-        android:id="@+id/textAppName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Sharely"
-        android:textSize="36sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="8dp" />
+        android:textColor="@color/sharely_primary"
+        android:textSize="38sp"
+        android:textStyle="bold" />
 
-    <!-- tagName -->
     <TextView
-        android:id="@+id/textSlogan"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Don't buy it, just borrow it!"
-        android:textSize="18sp"
-        android:layout_marginBottom="40dp" />
+        android:layout_marginTop="18dp"
+        android:gravity="center"
+        android:text="Borrow what you need.\nShare what you have."
+        android:textColor="@color/sharely_text_primary"
+        android:textSize="24sp"
+        android:textStyle="bold" />
 
-    <!-- button: browseItems -->
     <Button
-        android:id="@+id/buttonBrowse"
+        android:id="@+id/buttonLogin"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Browse Items"
-        android:layout_marginBottom="16dp" />
+        android:layout_height="56dp"
+        android:layout_marginTop="40dp"
+        android:text="Log in"
+        android:textAllCaps="false" />
 
-    <!-- button: listAnItem -->
     <Button
-        android:id="@+id/buttonListItem"
+        android:id="@+id/buttonRegister"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="List an Item"
-        android:layout_marginBottom="16dp"/>
+        android:layout_height="56dp"
+        android:layout_marginTop="12dp"
+        android:text="Create account"
+        android:textAllCaps="false" />
 
-    <LinearLayout
-
-        android:layout_width="match_parent"
-
-        android:layout_height="wrap_content"
-
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/buttonLogin"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginEnd="4dp"
-            android:text="Login" />
-
-        <Button
-            android:id="@+id/buttonRegister"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="4dp"
-            android:text="Register" />
-
-    </LinearLayout>
 </LinearLayout>

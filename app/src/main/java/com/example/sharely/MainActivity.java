@@ -27,52 +27,52 @@ public class MainActivity extends AppCompatActivity {
 
         firebaseAuth = FirebaseAuth.getInstance();
 
-        Button browseButton = findViewById(R.id.buttonBrowse);
-        Button listItemButton = findViewById(R.id.buttonListItem);
+//        Button browseButton = findViewById(R.id.buttonBrowse);
+//        Button listItemButton = findViewById(R.id.buttonListItem);
         Button loginButton = findViewById(R.id.buttonLogin);
         Button registerButton = findViewById(R.id.buttonRegister);
 
         // Browse does not require login
-        browseButton.setOnClickListener(v -> {
-
-            Intent intent = new Intent(
-                    MainActivity.this,
-                    BrowseActivity.class
-            );
-
-            startActivity(intent);
-        });
+//        browseButton.setOnClickListener(v -> {
+//
+//            Intent intent = new Intent(
+//                    MainActivity.this,
+//                    BrowseActivity.class
+//            );
+//
+//            startActivity(intent);
+//        });
 
         // Listing an item requires login
-        listItemButton.setOnClickListener(v -> {
-
-            FirebaseUser user = firebaseAuth.getCurrentUser();
-
-            if (user != null && user.isEmailVerified()) {
-
-                Intent intent = new Intent(
-                        MainActivity.this,
-                        AddItemActivity.class
-                );
-
-                startActivity(intent);
-
-            } else {
-
-                Toast.makeText(
-                        MainActivity.this,
-                        "Please login before listing an item",
-                        Toast.LENGTH_SHORT
-                ).show();
-
-                Intent intent = new Intent(
-                        MainActivity.this,
-                        LoginActivity.class
-                );
-
-                startActivity(intent);
-            }
-        });
+//        listItemButton.setOnClickListener(v -> {
+//
+//            FirebaseUser user = firebaseAuth.getCurrentUser();
+//
+//            if (user != null && user.isEmailVerified()) {
+//
+//                Intent intent = new Intent(
+//                        MainActivity.this,
+//                        AddItemActivity.class
+//                );
+//
+//                startActivity(intent);
+//
+//            } else {
+//
+//                Toast.makeText(
+//                        MainActivity.this,
+//                        "Please login before listing an item",
+//                        Toast.LENGTH_SHORT
+//                ).show();
+//
+//                Intent intent = new Intent(
+//                        MainActivity.this,
+//                        LoginActivity.class
+//                );
+//
+//                startActivity(intent);
+//            }
+//        });
 
         // Login
         loginButton.setOnClickListener(v -> {
