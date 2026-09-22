@@ -28,6 +28,7 @@ public class LoginActivity extends AppCompatActivity {
 
         Button loginButton = findViewById(R.id.loginButton);
         Button registerButton = findViewById(R.id.registerButton);
+        Button backButton = findViewById(R.id.backButton);
 
         firebaseAuth = FirebaseAuth.getInstance();
 
@@ -40,6 +41,7 @@ public class LoginActivity extends AppCompatActivity {
             );
             startActivity(intent);
         });
+        backButton.setOnClickListener(v -> finish());
     }
 
     private void loginUser() {

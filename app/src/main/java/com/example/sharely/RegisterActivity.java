@@ -34,11 +34,13 @@ public class RegisterActivity extends AppCompatActivity {
         passwordEditText = findViewById(R.id.passwordEditText);
 
         Button registerButton = findViewById(R.id.registerButton);
+        Button backButton = findViewById(R.id.backButton);
 
         firebaseAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
         registerButton.setOnClickListener(v -> registerUser());
+        backButton.setOnClickListener(v -> finish());
     }
 
     private void registerUser() {
