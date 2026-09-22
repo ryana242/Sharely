@@ -8,6 +8,9 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import android.content.Intent;
+import android.widget.Button;
+
 public class HomeActivity extends AppCompatActivity {
 
     @Override
@@ -19,6 +22,26 @@ public class HomeActivity extends AppCompatActivity {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
+        });
+
+        Button browseButton =
+                findViewById(R.id.buttonBrowseHome);
+
+        Button listButton =
+                findViewById(R.id.buttonListHome);
+
+        browseButton.setOnClickListener(v -> {
+            Intent intent =
+                    new Intent(HomeActivity.this, BrowseActivity.class);
+
+            startActivity(intent);
+        });
+
+        listButton.setOnClickListener(v -> {
+            Intent intent =
+                    new Intent(HomeActivity.this, AddItemActivity.class);
+
+            startActivity(intent);
         });
     }
 }

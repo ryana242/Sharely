@@ -14,4 +14,20 @@
         android:textSize="28sp"
         android:textStyle="bold" />
 
+    <Button
+        android:id="@+id/buttonBrowseHome"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginTop="24dp"
+        android:text="Find something"
+        android:textAllCaps="false" />
+
+    <Button
+        android:id="@+id/buttonListHome"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginTop="12dp"
+        android:text="List an item"
+        android:textAllCaps="false" />
+
 </LinearLayout>
