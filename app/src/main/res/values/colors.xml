@@ -2,11 +2,16 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="sharely_primary">#216869</color>
-    <color name="sharely_primary_dark">#174A4B</color>
-    <color name="sharely_accent">#49A078</color>
-    <color name="sharely_background">#F6F8F7</color>
+    <color name="sharely_primary">#176B52</color>
+    <color name="sharely_primary_dark">#0F4F3C</color>
+    <color name="sharely_accent">#2F8F6B</color>
+
+    <color name="sharely_background">#FFFFFF</color>
     <color name="sharely_surface">#FFFFFF</color>
-    <color name="sharely_text_primary">#172121</color>
-    <color name="sharely_text_secondary">#667573</color>
+
+    <color name="sharely_text_primary">#123D31</color>
+    <color name="sharely_text_secondary">#5A7D72</color>
+
+    <color name="sharely_border">#D7E8E1</color>
+    <color name="sharely_soft">#EDF7F3</color>
 </resources>
