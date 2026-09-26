@@ -1,54 +1,160 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="32dp">
+    android:background="@android:color/white"
+    android:fillViewport="true">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Sharely"
-        android:textSize="32sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="32dp" />
-
-    <EditText
-        android:id="@+id/emailEditText"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Email"
-        android:inputType="textEmailAddress" />
+        android:orientation="vertical"
+        android:paddingLeft="26dp"
+        android:paddingTop="28dp"
+        android:paddingRight="26dp"
+        android:paddingBottom="36dp">
 
-    <EditText
-        android:id="@+id/passwordEditText"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Password"
-        android:inputType="textPassword"
-        android:layout_marginTop="12dp" />
 
-    <Button
-        android:id="@+id/loginButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Login"
-        android:layout_marginTop="24dp" />
+        <!-- Back -->
 
-    <Button
-        android:id="@+id/registerButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Create Account"
-        android:layout_marginTop="12dp" />
+        <TextView
+            android:id="@+id/backButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="←"
+            android:textColor="@color/sharely_text_primary"
+            android:textSize="26sp" />
 
-    <Button
-        android:id="@+id/backButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="← Back" />
 
-</LinearLayout>
+        <!-- Brand -->
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="Sharely"
+            android:textColor="@color/sharely_primary"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+
+
+        <!-- Heading -->
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="42dp"
+            android:text="Welcome back"
+            android:textColor="@color/sharely_text_primary"
+            android:textSize="31sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Log in to continue borrowing and sharing with your community."
+            android:textColor="@color/sharely_text_secondary"
+            android:textSize="15sp"
+            android:lineSpacingExtra="3dp" />
+
+
+        <!-- Email -->
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="38dp"
+            android:text="Email"
+            android:textColor="@color/sharely_text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/emailEditText"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/input_field"
+            android:hint="Enter your email"
+            android:inputType="textEmailAddress"
+            android:singleLine="true"
+            android:textColor="@color/sharely_text_primary"
+            android:textColorHint="@color/sharely_text_secondary"
+            android:textSize="15sp" />
+
+
+        <!-- Password -->
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Password"
+            android:textColor="@color/sharely_text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/passwordEditText"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/input_field"
+            android:hint="Enter your password"
+            android:inputType="textPassword"
+            android:singleLine="true"
+            android:textColor="@color/sharely_text_primary"
+            android:textColorHint="@color/sharely_text_secondary"
+            android:textSize="15sp" />
+
+
+        <!-- Login -->
+
+        <TextView
+            android:id="@+id/loginButton"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:layout_marginTop="32dp"
+            android:background="@drawable/button_primary"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="Log in"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+
+        <!-- Registration prompt -->
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
+            android:gravity="center"
+            android:text="New to Sharely?"
+            android:textColor="@color/sharely_text_secondary"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/registerButton"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/button_secondary"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="Create an account"
+            android:textColor="@color/sharely_primary"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+</ScrollView>

@@ -2,7 +2,7 @@ package com.example.sharely;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.widget.Button;
+import android.widget.TextView;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -33,8 +33,8 @@ public class RegisterActivity extends AppCompatActivity {
         emailEditText = findViewById(R.id.emailEditText);
         passwordEditText = findViewById(R.id.passwordEditText);
 
-        Button registerButton = findViewById(R.id.registerButton);
-        Button backButton = findViewById(R.id.backButton);
+        TextView registerButton = findViewById(R.id.registerButton);
+        TextView backButton = findViewById(R.id.backButton);
 
         firebaseAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();

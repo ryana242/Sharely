@@ -2,7 +2,7 @@ package com.example.sharely;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -29,8 +29,8 @@ public class MainActivity extends AppCompatActivity {
 
 //        Button browseButton = findViewById(R.id.buttonBrowse);
 //        Button listItemButton = findViewById(R.id.buttonListItem);
-        Button loginButton = findViewById(R.id.buttonLogin);
-        Button registerButton = findViewById(R.id.buttonRegister);
+        TextView loginButton = findViewById(R.id.buttonLogin);
+        TextView registerButton = findViewById(R.id.buttonRegister);
 
         // Browse does not require login
 //        browseButton.setOnClickListener(v -> {
