@@ -1,71 +1,133 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="32dp">
-
-    <!-- appName -->
-    <TextView
-        android:id="@+id/textAppName"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Sharely"
-        android:textSize="36sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="8dp" />
-
-    <!-- tagName -->
-    <TextView
-        android:id="@+id/textSlogan"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Don't buy it, just borrow it!"
-        android:textSize="18sp"
-        android:layout_marginBottom="40dp" />
-
-    <!-- button: browseItems -->
-    <Button
-        android:id="@+id/buttonBrowse"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Browse Items"
-        android:layout_marginBottom="16dp" />
-
-    <!-- button: listAnItem -->
-    <Button
-        android:id="@+id/buttonListItem"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="List an Item"
-        android:layout_marginBottom="16dp"/>
+    android:background="@android:color/white"
+    android:fillViewport="true">
 
     <LinearLayout
-
         android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingLeft="26dp"
+        android:paddingTop="46dp"
+        android:paddingRight="26dp"
+        android:paddingBottom="30dp">
 
-        android:layout_height="wrap_content"
 
-        android:orientation="horizontal">
+        <!-- Logo mark -->
 
-        <Button
+        <TextView
+            android:layout_width="68dp"
+            android:layout_height="68dp"
+            android:background="@drawable/welcome_logo"
+            android:gravity="center"
+            android:text="S"
+            android:textColor="@color/sharely_primary"
+            android:textSize="30sp"
+            android:textStyle="bold" />
+
+
+        <!-- Brand -->
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="Sharely"
+            android:textColor="@color/sharely_primary"
+            android:textSize="39sp"
+            android:textStyle="bold" />
+
+<!--        <TextView-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_marginTop="5dp"-->
+<!--            android:text="Don't buy it, just borrow it."-->
+<!--            android:textColor="@color/sharely_text_secondary"-->
+<!--            android:textSize="15sp" />-->
+
+
+        <!-- Main hero card -->
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="38dp"
+            android:background="@drawable/welcome_hero"
+            android:orientation="vertical"
+            android:paddingLeft="24dp"
+            android:paddingTop="26dp"
+            android:paddingRight="24dp"
+            android:paddingBottom="26dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Don't buy it. \nJust borrow it."
+                android:textColor="@color/sharely_text_primary"
+                android:textSize="29sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:lineSpacingExtra="3dp"
+                android:gravity="center"
+                android:text="Borrow useful items from \npeople nearby, or make something \nyou own available to others."
+                android:textColor="@color/sharely_text_secondary"
+                android:textSize="16sp" />
+
+        </LinearLayout>
+
+
+        <!-- Actions -->
+
+        <TextView
             android:id="@+id/buttonLogin"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginEnd="4dp"
-            android:text="Login" />
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:layout_marginTop="34dp"
+            android:background="@drawable/button_primary"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="Log in"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
 
-        <Button
+        <TextView
             android:id="@+id/buttonRegister"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/button_secondary"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="Create account"
+            android:textColor="@color/sharely_primary"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+
+        <!-- Footer -->
+
+        <TextView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="4dp"
-            android:text="Register" />
+            android:layout_marginTop="25dp"
+            android:gravity="center"
+            android:text="Borrow locally  ·  Share responsibly"
+            android:textColor="@color/sharely_text_secondary"
+            android:textSize="13sp" />
 
     </LinearLayout>
-</LinearLayout>
+
+</ScrollView>

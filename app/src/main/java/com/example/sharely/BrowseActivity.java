@@ -10,6 +10,10 @@ import androidx.core.view.WindowInsetsCompat;
 import android.content.Intent;
 import android.widget.Button;
 
+import android.widget.EditText;
+import android.view.inputmethod.InputMethodManager;
+import android.content.Context;
+
 public class BrowseActivity extends AppCompatActivity {
 
     @Override
@@ -61,5 +65,27 @@ public class BrowseActivity extends AppCompatActivity {
         backButton.setOnClickListener(v -> {
             finish();
         });
+
+        EditText searchField =
+                findViewById(R.id.editSearch);
+
+        boolean focusSearch =
+                getIntent().getBooleanExtra("focusSearch", false);
+
+        if (focusSearch) {
+
+            searchField.requestFocus();
+
+            searchField.post(() -> {
+                InputMethodManager keyboard =
+                        (InputMethodManager)
+                                getSystemService(Context.INPUT_METHOD_SERVICE);
+
+                keyboard.showSoftInput(
+                        searchField,
+                        InputMethodManager.SHOW_IMPLICIT
+                );
+            });
+        }
     }
 }

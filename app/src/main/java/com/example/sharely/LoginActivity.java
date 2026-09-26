@@ -2,7 +2,7 @@ package com.example.sharely;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.widget.Button;
+import android.widget.TextView;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -26,9 +26,9 @@ public class LoginActivity extends AppCompatActivity {
         emailEditText = findViewById(R.id.emailEditText);
         passwordEditText = findViewById(R.id.passwordEditText);
 
-        Button loginButton = findViewById(R.id.loginButton);
-        Button registerButton = findViewById(R.id.registerButton);
-        Button backButton = findViewById(R.id.backButton);
+        TextView loginButton = findViewById(R.id.loginButton);
+        TextView registerButton = findViewById(R.id.registerButton);
+        TextView backButton = findViewById(R.id.backButton);
 
         firebaseAuth = FirebaseAuth.getInstance();
 
@@ -79,7 +79,7 @@ public class LoginActivity extends AppCompatActivity {
 
                             Intent intent = new Intent(
                                     LoginActivity.this,
-                                    MainActivity.class
+                                    HomeActivity.class
                             );
 
                             startActivity(intent);

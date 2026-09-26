@@ -1,85 +1,227 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/itemDetailsMain"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="24dp">
+    android:background="@color/sharely_background"
+    android:fillViewport="true">
 
-    <Button
-        android:id="@+id/buttonBack"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="← Back"
-        android:layout_marginBottom="12dp" />
-
-    <TextView
-        android:id="@+id/textItemName"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Cordless Drill"
-        android:textSize="28sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/textItemPrice"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="$5 per day"
-        android:textSize="20sp"
-        android:layout_marginTop="12dp" />
-
-    <TextView
-        android:id="@+id/textItemInfo"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="1.2 km away • ★ 4.8"
-        android:layout_marginTop="10dp" />
-
-    <TextView
-        android:id="@+id/textItemDescription"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="A reliable cordless drill suitable for small home projects."
-        android:textSize="16sp"
-        android:layout_marginTop="20dp" />
-
-    <TextView
-        android:id="@+id/textStartTime"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Start: Not selected"
-        android:textSize="16sp"
-        android:layout_marginTop="24dp" />
-
-    <Button
-        android:id="@+id/buttonSelectStart"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Select Start Date &amp; Time"
-        android:layout_marginTop="8dp" />
+        android:orientation="vertical"
+        android:paddingLeft="22dp"
+        android:paddingTop="20dp"
+        android:paddingRight="22dp"
+        android:paddingBottom="36dp">
 
-    <TextView
-        android:id="@+id/textEndTime"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="End: Not selected"
-        android:textSize="16sp"
-        android:layout_marginTop="16dp" />
 
-    <Button
-        android:id="@+id/buttonSelectEnd"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Select End Date &amp; Time"
-        android:layout_marginTop="8dp" />
+        <!-- Top bar -->
 
-    <Button
-        android:id="@+id/buttonRequestBooking"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Request Booking"
-        android:layout_marginTop="30dp" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-</LinearLayout>
+            <Button
+                android:id="@+id/buttonBack"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:backgroundTint="@android:color/transparent"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:text="←"
+                android:textAllCaps="false"
+                android:textColor="@color/sharely_text_primary"
+                android:textSize="24sp" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="Item details"
+                android:textColor="@color/sharely_text_primary"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+
+        <!-- Item image -->
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="240dp"
+            android:layout_marginTop="18dp"
+            android:background="@drawable/item_image_placeholder" />
+
+
+        <!-- Item heading -->
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:gravity="top"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/textItemName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Item name"
+                android:textColor="@color/sharely_text_primary"
+                android:textSize="26sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/textItemPrice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="$0 / day"
+                android:textColor="@color/sharely_primary"
+                android:textSize="19sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+
+        <!-- Rating / distance -->
+
+        <TextView
+            android:id="@+id/textItemInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="9dp"
+            android:text="Distance · Rating"
+            android:textColor="@color/sharely_text_secondary"
+            android:textSize="14sp" />
+
+
+        <!-- Description -->
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
+            android:text="About this item"
+            android:textColor="@color/sharely_text_primary"
+            android:textSize="19sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/textItemDescription"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="9dp"
+            android:lineSpacingExtra="3dp"
+            android:text="Item description"
+            android:textColor="@color/sharely_text_secondary"
+            android:textSize="15sp" />
+
+
+        <!-- Booking card -->
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:background="@drawable/card_surface"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Choose your borrowing period"
+                android:textColor="@color/sharely_text_primary"
+                android:textSize="19sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:text="Select when you'd like to borrow and return this item."
+                android:textColor="@color/sharely_text_secondary"
+                android:textSize="14sp" />
+
+
+            <!-- Start -->
+
+            <TextView
+                android:id="@+id/textStartTime"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:text="Start: Not selected"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/buttonSelectStart"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/button_secondary"
+                android:backgroundTint="@null"
+                android:text="Select start date &amp; time"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+
+            <!-- End -->
+
+            <TextView
+                android:id="@+id/textEndTime"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="End: Not selected"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/buttonSelectEnd"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/button_secondary"
+                android:backgroundTint="@null"
+                android:text="Select end date &amp; time"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+
+            <!-- Main booking action -->
+
+            <Button
+                android:id="@+id/buttonRequestBooking"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="26dp"
+                android:background="@drawable/button_primary"
+                android:backgroundTint="@null"
+                android:text="Request booking"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>
