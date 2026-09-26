@@ -116,7 +116,7 @@
                     android:paddingRight="16dp"
                     android:text="Category"
                     android:textAllCaps="false"
-                    android:textColor="@color/sharely_text_primary"
+                    android:textColor="@color/white"
                     android:textSize="14sp" />
 
                 <Button
@@ -132,7 +132,7 @@
                     android:paddingRight="16dp"
                     android:text="Distance"
                     android:textAllCaps="false"
-                    android:textColor="@color/sharely_text_primary"
+                    android:textColor="@color/white"
                     android:textSize="14sp" />
 
                 <Button
@@ -148,7 +148,7 @@
                     android:paddingRight="16dp"
                     android:text="Price"
                     android:textAllCaps="false"
-                    android:textColor="@color/sharely_text_primary"
+                    android:textColor="@color/white"
                     android:textSize="14sp" />
 
                 <Button
@@ -164,7 +164,7 @@
                     android:paddingRight="16dp"
                     android:text="Availability"
                     android:textAllCaps="false"
-                    android:textColor="@color/sharely_text_primary"
+                    android:textColor="@color/white"
                     android:textSize="14sp" />
 
             </LinearLayout>

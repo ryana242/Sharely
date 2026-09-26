@@ -161,7 +161,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="22dp"
                 android:text="Start: Not selected"
-                android:textColor="@color/sharely_text_primary"
+                android:textColor="@color/white"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
@@ -174,7 +174,7 @@
                 android:backgroundTint="@null"
                 android:text="Select start date &amp; time"
                 android:textAllCaps="false"
-                android:textColor="@color/sharely_primary"
+                android:textColor="@color/white"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
@@ -187,7 +187,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
                 android:text="End: Not selected"
-                android:textColor="@color/sharely_text_primary"
+                android:textColor="@color/white"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
@@ -200,7 +200,7 @@
                 android:backgroundTint="@null"
                 android:text="Select end date &amp; time"
                 android:textAllCaps="false"
-                android:textColor="@color/sharely_primary"
+                android:textColor="@color/white"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
