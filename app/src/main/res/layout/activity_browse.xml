@@ -203,6 +203,7 @@
         <!-- Drill card -->
 
         <LinearLayout
+            android:id="@+id/cardDrill"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="15dp"
@@ -275,6 +276,7 @@
         <!-- Tent card -->
 
         <LinearLayout
+            android:id="@+id/cardTent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
