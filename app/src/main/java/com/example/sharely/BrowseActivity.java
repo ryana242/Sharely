@@ -20,35 +20,49 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.sharely.service.ItemSearchService;
 
-
 public class BrowseActivity extends AppCompatActivity {
 
-    // Search/filter UI
+    // ---------------------------------------------------------
+    // UI FIELDS
+    // ---------------------------------------------------------
+
     private EditText searchField;
 
-    // Current hardcoded listing cards
     private LinearLayout cardDrill;
     private LinearLayout cardTent;
 
-    // Contains the actual search/filter rules
+
+    // ---------------------------------------------------------
+    // SEARCH / FILTER LOGIC
+    // ---------------------------------------------------------
+
     private ItemSearchService searchService;
 
-    // null means no category filter is active
+    // null means that particular filter is not active
     private String selectedCategory = null;
+
     private Double selectedMaxPrice = null;
 
+    private Double selectedMaxDistanceKm = null;
+
+
+    // =========================================================
+    // ON CREATE
+    // =========================================================
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
 
         EdgeToEdge.enable(this);
+
         setContentView(R.layout.activity_browse);
 
 
-        // ---------------------------------------------------------
-        // SYSTEM BAR INSETS
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
+        // HANDLE SYSTEM BARS
+        // -----------------------------------------------------
 
         ViewCompat.setOnApplyWindowInsetsListener(
                 findViewById(R.id.browseMain),
@@ -71,9 +85,9 @@ public class BrowseActivity extends AppCompatActivity {
         );
 
 
-        // ---------------------------------------------------------
-        // FIND VIEWS
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
+        // FIND MAIN VIEWS
+        // -----------------------------------------------------
 
         searchField =
                 findViewById(R.id.editSearch);
@@ -84,15 +98,24 @@ public class BrowseActivity extends AppCompatActivity {
         cardTent =
                 findViewById(R.id.cardTent);
 
+
+        // -----------------------------------------------------
+        // FILTER CONTROLS
+        // -----------------------------------------------------
+
         TextView categoryButton =
                 findViewById(R.id.buttonCategory);
 
         TextView priceButton =
                 findViewById(R.id.buttonPrice);
 
-        priceButton.setOnClickListener(v -> {
-            showPriceDialog(priceButton);
-        });
+        TextView distanceButton =
+                findViewById(R.id.buttonFilter);
+
+
+        // -----------------------------------------------------
+        // NAVIGATION CONTROLS
+        // -----------------------------------------------------
 
         View backButton =
                 findViewById(R.id.buttonBack);
@@ -104,26 +127,26 @@ public class BrowseActivity extends AppCompatActivity {
                 findViewById(R.id.buttonViewTent);
 
 
-        // ---------------------------------------------------------
-        // SEARCH SERVICE
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
+        // CREATE SEARCH SERVICE
+        // -----------------------------------------------------
 
         searchService =
                 new ItemSearchService();
 
 
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
         // BACK BUTTON
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
 
         backButton.setOnClickListener(v -> {
             finish();
         });
 
 
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
         // DRILL → ITEM DETAILS
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
 
         viewDrillButton.setOnClickListener(v -> {
 
@@ -162,9 +185,9 @@ public class BrowseActivity extends AppCompatActivity {
         });
 
 
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
         // TENT → ITEM DETAILS
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
 
         viewTentButton.setOnClickListener(v -> {
 
@@ -203,9 +226,9 @@ public class BrowseActivity extends AppCompatActivity {
         });
 
 
-        // ---------------------------------------------------------
-        // LIVE SEARCH
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
+        // LIVE KEYWORD SEARCH
+        // -----------------------------------------------------
 
         searchField.addTextChangedListener(
                 new TextWatcher() {
@@ -217,7 +240,7 @@ public class BrowseActivity extends AppCompatActivity {
                             int count,
                             int after
                     ) {
-                        // Nothing needed here
+                        // Nothing needed
                     }
 
 
@@ -237,24 +260,51 @@ public class BrowseActivity extends AppCompatActivity {
                     public void afterTextChanged(
                             Editable s
                     ) {
-                        // Nothing needed here
+                        // Nothing needed
                     }
                 }
         );
 
 
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
         // CATEGORY FILTER
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
 
         categoryButton.setOnClickListener(v -> {
-            showCategoryDialog(categoryButton);
+
+            showCategoryDialog(
+                    categoryButton
+            );
         });
 
 
-        // ---------------------------------------------------------
-        // HOME SEARCH → AUTOMATICALLY FOCUS SEARCH FIELD
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
+        // PRICE FILTER
+        // -----------------------------------------------------
+
+        priceButton.setOnClickListener(v -> {
+
+            showPriceDialog(
+                    priceButton
+            );
+        });
+
+
+        // -----------------------------------------------------
+        // DISTANCE FILTER
+        // -----------------------------------------------------
+
+        distanceButton.setOnClickListener(v -> {
+
+            showDistanceDialog(
+                    distanceButton
+            );
+        });
+
+
+        // -----------------------------------------------------
+        // HOME SEARCH → FOCUS SEARCH FIELD
+        // -----------------------------------------------------
 
         boolean focusSearch =
                 getIntent().getBooleanExtra(
@@ -282,14 +332,17 @@ public class BrowseActivity extends AppCompatActivity {
         }
 
 
-        // Apply initial state
+        // -----------------------------------------------------
+        // INITIAL FILTER STATE
+        // -----------------------------------------------------
+
         applyFilters();
     }
 
 
-    // =============================================================
-    // APPLY ALL ACTIVE FILTERS
-    // =============================================================
+    // =========================================================
+    // APPLY ALL FILTERS
+    // =========================================================
 
     private void applyFilters() {
 
@@ -299,57 +352,84 @@ public class BrowseActivity extends AppCompatActivity {
                         .toString();
 
 
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
         // DRILL
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
 
         boolean drillMatches =
                 searchService.matchesKeyword(
                         "Cordless Drill",
                         query
                 )
+
                         &&
+
                         searchService.matchesCategory(
                                 "Tools",
                                 selectedCategory
                         )
+
                         &&
+
                         searchService.matchesMaxPrice(
                                 5.0,
                                 selectedMaxPrice
+                        )
+
+                        &&
+
+                        searchService.matchesMaxDistance(
+                                1.2,
+                                selectedMaxDistanceKm
                         );
 
 
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
         // TENT
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
 
         boolean tentMatches =
                 searchService.matchesKeyword(
                         "Camping Tent",
                         query
                 )
+
                         &&
+
                         searchService.matchesCategory(
                                 "Camping",
                                 selectedCategory
                         )
+
                         &&
+
                         searchService.matchesMaxPrice(
                                 8.0,
                                 selectedMaxPrice
+                        )
+
+                        &&
+
+                        searchService.matchesMaxDistance(
+                                2.4,
+                                selectedMaxDistanceKm
                         );
 
 
-        // ---------------------------------------------------------
-        // SHOW / HIDE RESULTS
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
+        // SHOW / HIDE DRILL
+        // -----------------------------------------------------
 
         cardDrill.setVisibility(
                 drillMatches
                         ? View.VISIBLE
                         : View.GONE
         );
+
+
+        // -----------------------------------------------------
+        // SHOW / HIDE TENT
+        // -----------------------------------------------------
 
         cardTent.setVisibility(
                 tentMatches
@@ -359,9 +439,9 @@ public class BrowseActivity extends AppCompatActivity {
     }
 
 
-    // =============================================================
-    // CATEGORY SELECTION DIALOG
-    // =============================================================
+    // =========================================================
+    // CATEGORY FILTER DIALOG
+    // =========================================================
 
     private void showCategoryDialog(
             TextView categoryButton
@@ -375,7 +455,10 @@ public class BrowseActivity extends AppCompatActivity {
 
 
         new AlertDialog.Builder(this)
-                .setTitle("Choose category")
+
+                .setTitle(
+                        "Choose category"
+                )
 
                 .setItems(
                         categories,
@@ -383,7 +466,6 @@ public class BrowseActivity extends AppCompatActivity {
 
                             if (which == 0) {
 
-                                // No category restriction
                                 selectedCategory = null;
 
                                 categoryButton.setText(
@@ -401,14 +483,17 @@ public class BrowseActivity extends AppCompatActivity {
                             }
 
 
-                            // Re-evaluate both search
-                            // and category together
                             applyFilters();
                         }
                 )
 
                 .show();
     }
+
+
+    // =========================================================
+    // PRICE FILTER DIALOG
+    // =========================================================
 
     private void showPriceDialog(
             TextView priceButton
@@ -421,8 +506,13 @@ public class BrowseActivity extends AppCompatActivity {
                 "Up to $20/day"
         };
 
+
         new AlertDialog.Builder(this)
-                .setTitle("Maximum price")
+
+                .setTitle(
+                        "Maximum price"
+                )
+
                 .setItems(
                         priceOptions,
                         (dialog, which) -> {
@@ -460,9 +550,88 @@ public class BrowseActivity extends AppCompatActivity {
                                 );
                             }
 
+
                             applyFilters();
                         }
                 )
+
+                .show();
+    }
+
+
+    // =========================================================
+    // DISTANCE FILTER DIALOG
+    // =========================================================
+
+    private void showDistanceDialog(
+            TextView distanceButton
+    ) {
+
+        String[] distanceOptions = {
+                "Any distance",
+                "Within 1 km",
+                "Within 2 km",
+                "Within 3 km",
+                "Within 5 km"
+        };
+
+
+        new AlertDialog.Builder(this)
+
+                .setTitle(
+                        "Maximum distance"
+                )
+
+                .setItems(
+                        distanceOptions,
+                        (dialog, which) -> {
+
+                            if (which == 0) {
+
+                                selectedMaxDistanceKm = null;
+
+                                distanceButton.setText(
+                                        "Distance"
+                                );
+
+                            } else if (which == 1) {
+
+                                selectedMaxDistanceKm = 1.0;
+
+                                distanceButton.setText(
+                                        "≤ 1 km"
+                                );
+
+                            } else if (which == 2) {
+
+                                selectedMaxDistanceKm = 2.0;
+
+                                distanceButton.setText(
+                                        "≤ 2 km"
+                                );
+
+                            } else if (which == 3) {
+
+                                selectedMaxDistanceKm = 3.0;
+
+                                distanceButton.setText(
+                                        "≤ 3 km"
+                                );
+
+                            } else {
+
+                                selectedMaxDistanceKm = 5.0;
+
+                                distanceButton.setText(
+                                        "≤ 5 km"
+                                );
+                            }
+
+
+                            applyFilters();
+                        }
+                )
+
                 .show();
     }
 }
