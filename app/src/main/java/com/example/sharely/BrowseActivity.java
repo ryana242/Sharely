@@ -35,6 +35,7 @@ public class BrowseActivity extends AppCompatActivity {
 
     // null means no category filter is active
     private String selectedCategory = null;
+    private Double selectedMaxPrice = null;
 
 
     @Override
@@ -85,6 +86,13 @@ public class BrowseActivity extends AppCompatActivity {
 
         TextView categoryButton =
                 findViewById(R.id.buttonCategory);
+
+        TextView priceButton =
+                findViewById(R.id.buttonPrice);
+
+        priceButton.setOnClickListener(v -> {
+            showPriceDialog(priceButton);
+        });
 
         View backButton =
                 findViewById(R.id.buttonBack);
@@ -304,6 +312,11 @@ public class BrowseActivity extends AppCompatActivity {
                         searchService.matchesCategory(
                                 "Tools",
                                 selectedCategory
+                        )
+                        &&
+                        searchService.matchesMaxPrice(
+                                5.0,
+                                selectedMaxPrice
                         );
 
 
@@ -320,6 +333,11 @@ public class BrowseActivity extends AppCompatActivity {
                         searchService.matchesCategory(
                                 "Camping",
                                 selectedCategory
+                        )
+                        &&
+                        searchService.matchesMaxPrice(
+                                8.0,
+                                selectedMaxPrice
                         );
 
 
@@ -389,6 +407,62 @@ public class BrowseActivity extends AppCompatActivity {
                         }
                 )
 
+                .show();
+    }
+
+    private void showPriceDialog(
+            TextView priceButton
+    ) {
+
+        String[] priceOptions = {
+                "Any price",
+                "Up to $5/day",
+                "Up to $10/day",
+                "Up to $20/day"
+        };
+
+        new AlertDialog.Builder(this)
+                .setTitle("Maximum price")
+                .setItems(
+                        priceOptions,
+                        (dialog, which) -> {
+
+                            if (which == 0) {
+
+                                selectedMaxPrice = null;
+
+                                priceButton.setText(
+                                        "Price"
+                                );
+
+                            } else if (which == 1) {
+
+                                selectedMaxPrice = 5.0;
+
+                                priceButton.setText(
+                                        "≤ $5"
+                                );
+
+                            } else if (which == 2) {
+
+                                selectedMaxPrice = 10.0;
+
+                                priceButton.setText(
+                                        "≤ $10"
+                                );
+
+                            } else {
+
+                                selectedMaxPrice = 20.0;
+
+                                priceButton.setText(
+                                        "≤ $20"
+                                );
+                            }
+
+                            applyFilters();
+                        }
+                )
                 .show();
     }
 }
