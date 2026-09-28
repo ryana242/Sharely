@@ -20,6 +20,18 @@ import androidx.fragment.app.Fragment;
 
 import com.example.sharely.service.ItemSearchService;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationManager;
+import android.widget.Toast;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.content.ContextCompat;
+
+import java.util.Map;
+
 public class BrowseFragment extends Fragment {
 
     private EditText searchField;
@@ -33,10 +45,46 @@ public class BrowseFragment extends Fragment {
     private Double selectedMaxPrice = null;
     private Double selectedMaxDistanceKm = null;
 
+    private Double userLatitude = null;
+    private Double userLongitude = null;
+
 
     public BrowseFragment() {
     }
 
+    private final ActivityResultLauncher<String[]> locationPermissionLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.RequestMultiplePermissions(),
+                    result -> {
+
+                        Boolean fineGranted =
+                                result.get(
+                                        Manifest.permission.ACCESS_FINE_LOCATION
+                                );
+
+                        Boolean coarseGranted =
+                                result.get(
+                                        Manifest.permission.ACCESS_COARSE_LOCATION
+                                );
+
+                        boolean locationGranted =
+                                Boolean.TRUE.equals(fineGranted)
+                                        || Boolean.TRUE.equals(coarseGranted);
+
+                        if (locationGranted) {
+
+                            loadCurrentLocation();
+
+                        } else {
+
+                            Toast.makeText(
+                                    requireContext(),
+                                    "Location permission is needed for nearby discovery.",
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                        }
+                    }
+            );
 
     @Override
     public View onCreateView(
@@ -248,6 +296,7 @@ public class BrowseFragment extends Fragment {
                     ) {
 
                         applyFilters();
+                        requestCurrentLocation();
                     }
 
 
@@ -328,6 +377,7 @@ public class BrowseFragment extends Fragment {
 
 
         applyFilters();
+        requestCurrentLocation();
     }
 
 
@@ -459,6 +509,7 @@ public class BrowseFragment extends Fragment {
                             }
 
                             applyFilters();
+                            requestCurrentLocation();
                         }
                 )
 
@@ -528,6 +579,7 @@ public class BrowseFragment extends Fragment {
                             }
 
                             applyFilters();
+                            requestCurrentLocation();
                         }
                 )
 
@@ -606,9 +658,118 @@ public class BrowseFragment extends Fragment {
                             }
 
                             applyFilters();
+                            requestCurrentLocation();
                         }
                 )
 
                 .show();
+    }
+
+    private void requestCurrentLocation() {
+
+        boolean fineGranted =
+                ContextCompat.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED;
+
+        boolean coarseGranted =
+                ContextCompat.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED;
+
+
+        if (fineGranted || coarseGranted) {
+
+            loadCurrentLocation();
+
+        } else {
+
+            locationPermissionLauncher.launch(
+                    new String[]{
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                    }
+            );
+        }
+    }
+
+    private void loadCurrentLocation() {
+
+        boolean fineGranted =
+                ContextCompat.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED;
+
+        boolean coarseGranted =
+                ContextCompat.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED;
+
+
+        if (!fineGranted && !coarseGranted) {
+            return;
+        }
+
+
+        LocationManager locationManager =
+                (LocationManager)
+                        requireContext().getSystemService(
+                                Context.LOCATION_SERVICE
+                        );
+
+
+        Location location = null;
+
+
+        if (locationManager.isProviderEnabled(
+                LocationManager.GPS_PROVIDER
+        )) {
+
+            location =
+                    locationManager.getLastKnownLocation(
+                            LocationManager.GPS_PROVIDER
+                    );
+        }
+
+
+        if (location == null
+                && locationManager.isProviderEnabled(
+                LocationManager.NETWORK_PROVIDER
+        )) {
+
+            location =
+                    locationManager.getLastKnownLocation(
+                            LocationManager.NETWORK_PROVIDER
+                    );
+        }
+
+
+        if (location != null) {
+
+            userLatitude =
+                    location.getLatitude();
+
+            userLongitude =
+                    location.getLongitude();
+
+
+            Toast.makeText(
+                    requireContext(),
+                    "Location ready",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+        } else {
+
+            Toast.makeText(
+                    requireContext(),
+                    "Current location is not available yet.",
+                    Toast.LENGTH_SHORT
+            ).show();
+        }
     }
 }
