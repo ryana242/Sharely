@@ -238,10 +238,11 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/textDrillInfo"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
-                        android:text="★ 4.8  ·  1.2 km away"
+                        android:text="★ 4.8  ·  Distance unavailable"
                         android:textColor="@color/sharely_text_secondary"
                         android:textSize="13sp" />
 
@@ -311,10 +312,11 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/textTentInfo"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
-                        android:text="★ 4.6  ·  2.4 km away"
+                        android:text="★ 4.6  ·  Distance unavailable"
                         android:textColor="@color/sharely_text_secondary"
                         android:textSize="13sp" />
 

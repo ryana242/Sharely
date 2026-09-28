@@ -31,39 +31,77 @@ import com.example.sharely.service.LocationService;
 
 public class BrowseFragment extends Fragment {
 
+    // =========================================================
+    // UI FIELDS
+    // =========================================================
+
     private EditText searchField;
 
     private LinearLayout cardDrill;
     private LinearLayout cardTent;
 
+    private TextView drillInfoText;
+    private TextView tentInfoText;
+
+
+    // =========================================================
+    // SERVICES
+    // =========================================================
+
     private ItemSearchService searchService;
     private LocationService locationService;
 
+
+    // =========================================================
+    // FILTER STATE
+    // =========================================================
+
     private String selectedCategory = null;
+
     private Double selectedMaxPrice = null;
+
     private Double selectedMaxDistanceKm = null;
+
+
+    // =========================================================
+    // USER LOCATION
+    // =========================================================
 
     private Double userLatitude = null;
     private Double userLongitude = null;
 
+
     /*
-     * Until location is known, these remain very large.
-     * If no distance filter is selected, this does not matter.
+     * Until the device location becomes available,
+     * these values remain extremely large.
      */
-    private double drillDistanceKm = Double.MAX_VALUE;
-    private double tentDistanceKm = Double.MAX_VALUE;
+    private double drillDistanceKm =
+            Double.MAX_VALUE;
 
-
-    // Temporary demo listing coordinates
-    private static final double DRILL_LATITUDE = -33.8731;
-    private static final double DRILL_LONGITUDE = 151.2065;
-
-    private static final double TENT_LATITUDE = -33.8790;
-    private static final double TENT_LONGITUDE = 151.2150;
+    private double tentDistanceKm =
+            Double.MAX_VALUE;
 
 
     // =========================================================
-    // LOCATION PERMISSION
+    // TEMPORARY DEMO ITEM LOCATIONS
+    // =========================================================
+
+    private static final double DRILL_LATITUDE =
+            -33.8731;
+
+    private static final double DRILL_LONGITUDE =
+            151.2065;
+
+
+    private static final double TENT_LATITUDE =
+            -33.8790;
+
+    private static final double TENT_LONGITUDE =
+            151.2150;
+
+
+    // =========================================================
+    // LOCATION PERMISSION LAUNCHER
     // =========================================================
 
     private final ActivityResultLauncher<String[]>
@@ -71,6 +109,7 @@ public class BrowseFragment extends Fragment {
 
             registerForActivityResult(
                     new ActivityResultContracts.RequestMultiplePermissions(),
+
                     result -> {
 
                         Boolean fineGranted =
@@ -83,9 +122,15 @@ public class BrowseFragment extends Fragment {
                                         Manifest.permission.ACCESS_COARSE_LOCATION
                                 );
 
+
                         boolean granted =
-                                Boolean.TRUE.equals(fineGranted)
-                                        || Boolean.TRUE.equals(coarseGranted);
+                                Boolean.TRUE.equals(
+                                        fineGranted
+                                )
+                                        ||
+                                        Boolean.TRUE.equals(
+                                                coarseGranted
+                                        );
 
 
                         if (granted) {
@@ -103,6 +148,10 @@ public class BrowseFragment extends Fragment {
                     }
             );
 
+
+    // =========================================================
+    // CONSTRUCTOR
+    // =========================================================
 
     public BrowseFragment() {
     }
@@ -144,7 +193,7 @@ public class BrowseFragment extends Fragment {
 
 
         // -----------------------------------------------------
-        // SERVICES FIRST
+        // SERVICES
         // -----------------------------------------------------
 
         searchService =
@@ -155,7 +204,7 @@ public class BrowseFragment extends Fragment {
 
 
         // -----------------------------------------------------
-        // VIEWS
+        // MAIN VIEWS
         // -----------------------------------------------------
 
         searchField =
@@ -163,10 +212,12 @@ public class BrowseFragment extends Fragment {
                         R.id.editSearch
                 );
 
+
         cardDrill =
                 view.findViewById(
                         R.id.cardDrill
                 );
+
 
         cardTent =
                 view.findViewById(
@@ -174,15 +225,33 @@ public class BrowseFragment extends Fragment {
                 );
 
 
+        drillInfoText =
+                view.findViewById(
+                        R.id.textDrillInfo
+                );
+
+
+        tentInfoText =
+                view.findViewById(
+                        R.id.textTentInfo
+                );
+
+
+        // -----------------------------------------------------
+        // FILTER BUTTONS
+        // -----------------------------------------------------
+
         TextView categoryButton =
                 view.findViewById(
                         R.id.buttonCategory
                 );
 
+
         TextView priceButton =
                 view.findViewById(
                         R.id.buttonPrice
                 );
+
 
         TextView distanceButton =
                 view.findViewById(
@@ -190,15 +259,21 @@ public class BrowseFragment extends Fragment {
                 );
 
 
+        // -----------------------------------------------------
+        // OTHER BUTTONS
+        // -----------------------------------------------------
+
         View backButton =
                 view.findViewById(
                         R.id.buttonBack
                 );
 
+
         View drillDetailsButton =
                 view.findViewById(
                         R.id.buttonViewDrill
                 );
+
 
         View tentDetailsButton =
                 view.findViewById(
@@ -206,14 +281,15 @@ public class BrowseFragment extends Fragment {
                 );
 
 
-        // -----------------------------------------------------
-        // BACK → HOME
-        // -----------------------------------------------------
+        // =====================================================
+        // BACK BUTTON
+        // =====================================================
 
         backButton.setOnClickListener(v -> {
 
             MainAppActivity activity =
-                    (MainAppActivity) requireActivity();
+                    (MainAppActivity)
+                            requireActivity();
 
             activity.selectTab(
                     R.id.navHome
@@ -221,9 +297,9 @@ public class BrowseFragment extends Fragment {
         });
 
 
-        // -----------------------------------------------------
+        // =====================================================
         // DRILL DETAILS
-        // -----------------------------------------------------
+        // =====================================================
 
         drillDetailsButton.setOnClickListener(v -> {
 
@@ -233,39 +309,49 @@ public class BrowseFragment extends Fragment {
                             ItemDetailsActivity.class
                     );
 
+
             intent.putExtra(
                     "itemId",
                     "ITEM1"
             );
+
 
             intent.putExtra(
                     "name",
                     "Cordless Drill"
             );
 
+
             intent.putExtra(
                     "price",
                     "$5 per day"
             );
 
+
             intent.putExtra(
                     "info",
-                    formatDistance(drillDistanceKm)
+                    formatDistance(
+                            drillDistanceKm
+                    )
                             + " • ★ 4.8"
             );
+
 
             intent.putExtra(
                     "description",
                     "A reliable cordless drill suitable for small home projects."
             );
 
-            startActivity(intent);
+
+            startActivity(
+                    intent
+            );
         });
 
 
-        // -----------------------------------------------------
+        // =====================================================
         // TENT DETAILS
-        // -----------------------------------------------------
+        // =====================================================
 
         tentDetailsButton.setOnClickListener(v -> {
 
@@ -275,41 +361,52 @@ public class BrowseFragment extends Fragment {
                             ItemDetailsActivity.class
                     );
 
+
             intent.putExtra(
                     "itemId",
                     "ITEM2"
             );
+
 
             intent.putExtra(
                     "name",
                     "Camping Tent"
             );
 
+
             intent.putExtra(
                     "price",
                     "$8 per day"
             );
 
+
             intent.putExtra(
                     "info",
-                    formatDistance(tentDistanceKm)
+                    formatDistance(
+                            tentDistanceKm
+                    )
                             + " • ★ 4.6"
             );
+
 
             intent.putExtra(
                     "description",
                     "A spacious camping tent suitable for weekend trips."
             );
 
-            startActivity(intent);
+
+            startActivity(
+                    intent
+            );
         });
 
 
-        // -----------------------------------------------------
+        // =====================================================
         // SEARCH
-        // -----------------------------------------------------
+        // =====================================================
 
         searchField.addTextChangedListener(
+
                 new TextWatcher() {
 
                     @Override
@@ -320,6 +417,7 @@ public class BrowseFragment extends Fragment {
                             int after
                     ) {
                     }
+
 
                     @Override
                     public void onTextChanged(
@@ -332,6 +430,7 @@ public class BrowseFragment extends Fragment {
                         applyFilters();
                     }
 
+
                     @Override
                     public void afterTextChanged(
                             Editable s
@@ -341,43 +440,60 @@ public class BrowseFragment extends Fragment {
         );
 
 
-        // -----------------------------------------------------
-        // FILTER BUTTONS
-        // -----------------------------------------------------
+        // =====================================================
+        // CATEGORY FILTER
+        // =====================================================
 
         categoryButton.setOnClickListener(v ->
+
                 showCategoryDialog(
                         categoryButton
                 )
         );
 
+
+        // =====================================================
+        // PRICE FILTER
+        // =====================================================
+
         priceButton.setOnClickListener(v ->
+
                 showPriceDialog(
                         priceButton
                 )
         );
 
+
+        // =====================================================
+        // DISTANCE FILTER
+        // =====================================================
+
         distanceButton.setOnClickListener(v ->
+
                 showDistanceDialog(
                         distanceButton
                 )
         );
 
 
-        // -----------------------------------------------------
-        // HOME SEARCH REQUEST
-        // -----------------------------------------------------
+        // =====================================================
+        // CHECK IF HOME REQUESTED SEARCH FOCUS
+        // =====================================================
 
         MainAppActivity mainActivity =
-                (MainAppActivity) requireActivity();
+                (MainAppActivity)
+                        requireActivity();
+
 
         boolean focusSearch =
-                mainActivity.consumeBrowseSearchFocus();
+                mainActivity
+                        .consumeBrowseSearchFocus();
 
 
         if (focusSearch) {
 
             searchField.requestFocus();
+
 
             searchField.post(() -> {
 
@@ -388,30 +504,43 @@ public class BrowseFragment extends Fragment {
                                                 Context.INPUT_METHOD_SERVICE
                                         );
 
-                keyboard.showSoftInput(
-                        searchField,
-                        InputMethodManager.SHOW_IMPLICIT
-                );
+
+                if (keyboard != null) {
+
+                    keyboard.showSoftInput(
+                            searchField,
+                            InputMethodManager.SHOW_IMPLICIT
+                    );
+                }
             });
         }
 
 
-        // First show listings normally
+        // =====================================================
+        // INITIAL DISPLAY
+        // =====================================================
+
         applyFilters();
 
-        // Then try to obtain real location
+
+        // =====================================================
+        // REQUEST DEVICE LOCATION
+        // =====================================================
+
         requestCurrentLocation();
     }
 
 
     // =========================================================
-    // APPLY FILTERS
+    // APPLY SEARCH + FILTERS
     // =========================================================
 
     private void applyFilters() {
 
         if (searchField == null
-                || searchService == null) {
+                || searchService == null
+                || cardDrill == null
+                || cardTent == null) {
 
             return;
         }
@@ -423,49 +552,82 @@ public class BrowseFragment extends Fragment {
                         .toString();
 
 
+        // -----------------------------------------------------
+        // DRILL
+        // -----------------------------------------------------
+
         boolean drillMatches =
+
                 searchService.matchesKeyword(
                         "Cordless Drill",
                         query
                 )
-                        && searchService.matchesCategory(
-                        "Tools",
-                        selectedCategory
-                )
-                        && searchService.matchesMaxPrice(
-                        5.0,
-                        selectedMaxPrice
-                )
-                        && searchService.matchesMaxDistance(
-                        drillDistanceKm,
-                        selectedMaxDistanceKm
-                );
 
+                        &&
+
+                        searchService.matchesCategory(
+                                "Tools",
+                                selectedCategory
+                        )
+
+                        &&
+
+                        searchService.matchesMaxPrice(
+                                5.0,
+                                selectedMaxPrice
+                        )
+
+                        &&
+
+                        searchService.matchesMaxDistance(
+                                drillDistanceKm,
+                                selectedMaxDistanceKm
+                        );
+
+
+        // -----------------------------------------------------
+        // TENT
+        // -----------------------------------------------------
 
         boolean tentMatches =
+
                 searchService.matchesKeyword(
                         "Camping Tent",
                         query
                 )
-                        && searchService.matchesCategory(
-                        "Camping",
-                        selectedCategory
-                )
-                        && searchService.matchesMaxPrice(
-                        8.0,
-                        selectedMaxPrice
-                )
-                        && searchService.matchesMaxDistance(
-                        tentDistanceKm,
-                        selectedMaxDistanceKm
-                );
 
+                        &&
+
+                        searchService.matchesCategory(
+                                "Camping",
+                                selectedCategory
+                        )
+
+                        &&
+
+                        searchService.matchesMaxPrice(
+                                8.0,
+                                selectedMaxPrice
+                        )
+
+                        &&
+
+                        searchService.matchesMaxDistance(
+                                tentDistanceKm,
+                                selectedMaxDistanceKm
+                        );
+
+
+        // -----------------------------------------------------
+        // SHOW / HIDE
+        // -----------------------------------------------------
 
         cardDrill.setVisibility(
                 drillMatches
                         ? View.VISIBLE
                         : View.GONE
         );
+
 
         cardTent.setVisibility(
                 tentMatches
@@ -476,7 +638,7 @@ public class BrowseFragment extends Fragment {
 
 
     // =========================================================
-    // CATEGORY
+    // CATEGORY FILTER DIALOG
     // =========================================================
 
     private void showCategoryDialog(
@@ -484,6 +646,7 @@ public class BrowseFragment extends Fragment {
     ) {
 
         String[] categories = {
+
                 "All categories",
                 "Tools",
                 "Camping"
@@ -493,16 +656,20 @@ public class BrowseFragment extends Fragment {
         new AlertDialog.Builder(
                 requireContext()
         )
+
                 .setTitle(
                         "Choose category"
                 )
+
                 .setItems(
                         categories,
+
                         (dialog, which) -> {
 
                             if (which == 0) {
 
-                                selectedCategory = null;
+                                selectedCategory =
+                                        null;
 
                                 categoryButton.setText(
                                         "Category"
@@ -518,15 +685,17 @@ public class BrowseFragment extends Fragment {
                                 );
                             }
 
+
                             applyFilters();
                         }
                 )
+
                 .show();
     }
 
 
     // =========================================================
-    // PRICE
+    // PRICE FILTER DIALOG
     // =========================================================
 
     private void showPriceDialog(
@@ -534,6 +703,7 @@ public class BrowseFragment extends Fragment {
     ) {
 
         String[] options = {
+
                 "Any price",
                 "Up to $5/day",
                 "Up to $10/day",
@@ -544,16 +714,20 @@ public class BrowseFragment extends Fragment {
         new AlertDialog.Builder(
                 requireContext()
         )
+
                 .setTitle(
                         "Maximum price"
                 )
+
                 .setItems(
                         options,
+
                         (dialog, which) -> {
 
                             if (which == 0) {
 
-                                selectedMaxPrice = null;
+                                selectedMaxPrice =
+                                        null;
 
                                 priceButton.setText(
                                         "Price"
@@ -561,7 +735,8 @@ public class BrowseFragment extends Fragment {
 
                             } else if (which == 1) {
 
-                                selectedMaxPrice = 5.0;
+                                selectedMaxPrice =
+                                        5.0;
 
                                 priceButton.setText(
                                         "≤ $5"
@@ -569,7 +744,8 @@ public class BrowseFragment extends Fragment {
 
                             } else if (which == 2) {
 
-                                selectedMaxPrice = 10.0;
+                                selectedMaxPrice =
+                                        10.0;
 
                                 priceButton.setText(
                                         "≤ $10"
@@ -577,22 +753,25 @@ public class BrowseFragment extends Fragment {
 
                             } else {
 
-                                selectedMaxPrice = 20.0;
+                                selectedMaxPrice =
+                                        20.0;
 
                                 priceButton.setText(
                                         "≤ $20"
                                 );
                             }
 
+
                             applyFilters();
                         }
                 )
+
                 .show();
     }
 
 
     // =========================================================
-    // DISTANCE
+    // DISTANCE FILTER DIALOG
     // =========================================================
 
     private void showDistanceDialog(
@@ -600,6 +779,7 @@ public class BrowseFragment extends Fragment {
     ) {
 
         String[] options = {
+
                 "Any distance",
                 "Within 1 km",
                 "Within 2 km",
@@ -611,16 +791,20 @@ public class BrowseFragment extends Fragment {
         new AlertDialog.Builder(
                 requireContext()
         )
+
                 .setTitle(
                         "Maximum distance"
                 )
+
                 .setItems(
                         options,
+
                         (dialog, which) -> {
 
                             if (which == 0) {
 
-                                selectedMaxDistanceKm = null;
+                                selectedMaxDistanceKm =
+                                        null;
 
                                 distanceButton.setText(
                                         "Distance"
@@ -628,7 +812,8 @@ public class BrowseFragment extends Fragment {
 
                             } else if (which == 1) {
 
-                                selectedMaxDistanceKm = 1.0;
+                                selectedMaxDistanceKm =
+                                        1.0;
 
                                 distanceButton.setText(
                                         "≤ 1 km"
@@ -636,7 +821,8 @@ public class BrowseFragment extends Fragment {
 
                             } else if (which == 2) {
 
-                                selectedMaxDistanceKm = 2.0;
+                                selectedMaxDistanceKm =
+                                        2.0;
 
                                 distanceButton.setText(
                                         "≤ 2 km"
@@ -644,7 +830,8 @@ public class BrowseFragment extends Fragment {
 
                             } else if (which == 3) {
 
-                                selectedMaxDistanceKm = 3.0;
+                                selectedMaxDistanceKm =
+                                        3.0;
 
                                 distanceButton.setText(
                                         "≤ 3 km"
@@ -652,16 +839,19 @@ public class BrowseFragment extends Fragment {
 
                             } else {
 
-                                selectedMaxDistanceKm = 5.0;
+                                selectedMaxDistanceKm =
+                                        5.0;
 
                                 distanceButton.setText(
                                         "≤ 5 km"
                                 );
                             }
 
+
                             applyFilters();
                         }
                 )
+
                 .show();
     }
 
@@ -673,27 +863,42 @@ public class BrowseFragment extends Fragment {
     private void requestCurrentLocation() {
 
         boolean fineGranted =
+
                 ContextCompat.checkSelfPermission(
                         requireContext(),
                         Manifest.permission.ACCESS_FINE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED;
+                )
+
+                        ==
+
+                        PackageManager.PERMISSION_GRANTED;
+
 
         boolean coarseGranted =
+
                 ContextCompat.checkSelfPermission(
                         requireContext(),
                         Manifest.permission.ACCESS_COARSE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED;
+                )
+
+                        ==
+
+                        PackageManager.PERMISSION_GRANTED;
 
 
-        if (fineGranted || coarseGranted) {
+        if (fineGranted
+                || coarseGranted) {
 
             loadCurrentLocation();
 
         } else {
 
             locationPermissionLauncher.launch(
+
                     new String[]{
+
                             Manifest.permission.ACCESS_FINE_LOCATION,
+
                             Manifest.permission.ACCESS_COARSE_LOCATION
                     }
             );
@@ -702,35 +907,50 @@ public class BrowseFragment extends Fragment {
 
 
     // =========================================================
-    // LOAD LOCATION
+    // LOAD CURRENT DEVICE LOCATION
     // =========================================================
 
     private void loadCurrentLocation() {
 
         if (!isAdded()) {
+
             return;
         }
 
 
         boolean fineGranted =
+
                 ContextCompat.checkSelfPermission(
                         requireContext(),
                         Manifest.permission.ACCESS_FINE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED;
+                )
+
+                        ==
+
+                        PackageManager.PERMISSION_GRANTED;
+
 
         boolean coarseGranted =
+
                 ContextCompat.checkSelfPermission(
                         requireContext(),
                         Manifest.permission.ACCESS_COARSE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED;
+                )
+
+                        ==
+
+                        PackageManager.PERMISSION_GRANTED;
 
 
-        if (!fineGranted && !coarseGranted) {
+        if (!fineGranted
+                && !coarseGranted) {
+
             return;
         }
 
 
         LocationManager manager =
+
                 (LocationManager)
                         requireContext()
                                 .getSystemService(
@@ -739,14 +959,20 @@ public class BrowseFragment extends Fragment {
 
 
         if (manager == null) {
+
             return;
         }
 
 
-        Location location = null;
+        Location location =
+                null;
 
 
         try {
+
+            // -------------------------------------------------
+            // TRY GPS FIRST
+            // -------------------------------------------------
 
             if (manager.isProviderEnabled(
                     LocationManager.GPS_PROVIDER
@@ -759,10 +985,15 @@ public class BrowseFragment extends Fragment {
             }
 
 
+            // -------------------------------------------------
+            // FALL BACK TO NETWORK LOCATION
+            // -------------------------------------------------
+
             if (location == null
-                    && manager.isProviderEnabled(
-                    LocationManager.NETWORK_PROVIDER
-            )) {
+                    &&
+                    manager.isProviderEnabled(
+                            LocationManager.NETWORK_PROVIDER
+                    )) {
 
                 location =
                         manager.getLastKnownLocation(
@@ -770,16 +1001,22 @@ public class BrowseFragment extends Fragment {
                         );
             }
 
+
         } catch (SecurityException exception) {
 
             return;
         }
 
 
+        // =====================================================
+        // LOCATION FOUND
+        // =====================================================
+
         if (location != null) {
 
             userLatitude =
                     location.getLatitude();
+
 
             userLongitude =
                     location.getLongitude();
@@ -787,7 +1024,9 @@ public class BrowseFragment extends Fragment {
 
             calculateItemDistances();
 
+
             applyFilters();
+
 
         } else {
 
@@ -814,7 +1053,12 @@ public class BrowseFragment extends Fragment {
         }
 
 
+        // -----------------------------------------------------
+        // DRILL DISTANCE
+        // -----------------------------------------------------
+
         drillDistanceKm =
+
                 locationService.calculateDistanceKm(
                         userLatitude,
                         userLongitude,
@@ -823,13 +1067,52 @@ public class BrowseFragment extends Fragment {
                 );
 
 
+        // -----------------------------------------------------
+        // TENT DISTANCE
+        // -----------------------------------------------------
+
         tentDistanceKm =
+
                 locationService.calculateDistanceKm(
                         userLatitude,
                         userLongitude,
                         TENT_LATITUDE,
                         TENT_LONGITUDE
                 );
+
+
+        // -----------------------------------------------------
+        // UPDATE DRILL CARD
+        // -----------------------------------------------------
+
+        if (drillInfoText != null) {
+
+            drillInfoText.setText(
+
+                    "★ 4.8  ·  "
+                            +
+                            formatDistance(
+                                    drillDistanceKm
+                            )
+            );
+        }
+
+
+        // -----------------------------------------------------
+        // UPDATE TENT CARD
+        // -----------------------------------------------------
+
+        if (tentInfoText != null) {
+
+            tentInfoText.setText(
+
+                    "★ 4.6  ·  "
+                            +
+                            formatDistance(
+                                    tentDistanceKm
+                            )
+            );
+        }
     }
 
 
@@ -841,9 +1124,12 @@ public class BrowseFragment extends Fragment {
             double distanceKm
     ) {
 
-        if (distanceKm == Double.MAX_VALUE) {
+        if (distanceKm
+                == Double.MAX_VALUE) {
+
             return "Distance unavailable";
         }
+
 
         return String.format(
                 "%.1f km away",
