@@ -12,7 +12,16 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
+import com.example.sharely.model.AvailabilitySlot;
+import com.example.sharely.model.Booking;
+import com.example.sharely.service.BookingActivityService;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class ActivityFragment extends Fragment {
+
+    private BookingActivityService bookingActivityService;
 
     public ActivityFragment() {
     }
@@ -45,6 +54,10 @@ public class ActivityFragment extends Fragment {
         );
 
 
+        // -----------------------------------------------------
+        // TAB VIEWS
+        // -----------------------------------------------------
+
         TextView borrowingTab =
                 view.findViewById(
                         R.id.tabBorrowing
@@ -66,7 +79,108 @@ public class ActivityFragment extends Fragment {
                 );
 
 
-        // Borrowing is selected initially
+        // -----------------------------------------------------
+        // BORROWING SUMMARY VIEWS
+        // -----------------------------------------------------
+
+        TextView ongoingSummary =
+                view.findViewById(
+                        R.id.textOngoingSummary
+                );
+
+        TextView ongoingDetail =
+                view.findViewById(
+                        R.id.textOngoingDetail
+                );
+
+        TextView upcomingSummary =
+                view.findViewById(
+                        R.id.textUpcomingSummary
+                );
+
+        TextView upcomingDetail =
+                view.findViewById(
+                        R.id.textUpcomingDetail
+                );
+
+        TextView historySummary =
+                view.findViewById(
+                        R.id.textHistorySummary
+                );
+
+
+        // -----------------------------------------------------
+        // SERVICE
+        // -----------------------------------------------------
+
+        bookingActivityService =
+                new BookingActivityService();
+
+
+        // -----------------------------------------------------
+        // TEMPORARY BOOKINGS
+        // Later Leo will replace these with Firestore bookings.
+        // -----------------------------------------------------
+
+        List<Booking> bookings =
+                createDemoBookings();
+
+
+        List<Booking> ongoingBookings =
+                bookingActivityService
+                        .getOngoingBookings(
+                                bookings
+                        );
+
+        List<Booking> upcomingBookings =
+                bookingActivityService
+                        .getUpcomingBookings(
+                                bookings
+                        );
+
+        List<Booking> historyBookings =
+                bookingActivityService
+                        .getHistoryBookings(
+                                bookings
+                        );
+
+
+        // -----------------------------------------------------
+        // DISPLAY COUNTS
+        // -----------------------------------------------------
+
+        ongoingSummary.setText(
+                ongoingBookings.size()
+                        + " ongoing borrowing"
+                        + (ongoingBookings.size() == 1 ? "" : "s")
+        );
+
+        ongoingDetail.setText(
+                "Active bookings currently in progress."
+        );
+
+
+        upcomingSummary.setText(
+                upcomingBookings.size()
+                        + " upcoming or pending"
+        );
+
+        upcomingDetail.setText(
+                "Pending requests and accepted future bookings."
+        );
+
+
+        historySummary.setText(
+                historyBookings.size()
+                        + " completed, cancelled or rejected booking"
+                        + (historyBookings.size() == 1 ? "" : "s")
+        );
+
+
+        // -----------------------------------------------------
+        // DEFAULT TAB
+        // -----------------------------------------------------
+
         showBorrowing(
                 borrowingTab,
                 listingsTab,
@@ -74,6 +188,10 @@ public class ActivityFragment extends Fragment {
                 listingsContent
         );
 
+
+        // -----------------------------------------------------
+        // TAB LISTENERS
+        // -----------------------------------------------------
 
         borrowingTab.setOnClickListener(v -> {
 
@@ -97,6 +215,82 @@ public class ActivityFragment extends Fragment {
         });
     }
 
+
+    // =========================================================
+    // TEMPORARY DATA
+    // =========================================================
+
+    private List<Booking> createDemoBookings() {
+
+        List<Booking> bookings =
+                new ArrayList<>();
+
+
+        // ACTIVE BOOKING
+        Booking activeBooking =
+                new Booking(
+                        "B001",
+                        "USER1",
+                        "ITEM1",
+                        new AvailabilitySlot(
+                                1000,
+                                5000
+                        )
+                );
+
+        activeBooking.acceptBooking();
+        activeBooking.startBooking();
+
+        bookings.add(
+                activeBooking
+        );
+
+
+        // PENDING BOOKING
+        Booking pendingBooking =
+                new Booking(
+                        "B002",
+                        "USER1",
+                        "ITEM2",
+                        new AvailabilitySlot(
+                                6000,
+                                9000
+                        )
+                );
+
+        bookings.add(
+                pendingBooking
+        );
+
+
+        // COMPLETED BOOKING
+        Booking completedBooking =
+                new Booking(
+                        "B003",
+                        "USER1",
+                        "ITEM3",
+                        new AvailabilitySlot(
+                                10000,
+                                15000
+                        )
+                );
+
+        completedBooking.acceptBooking();
+        completedBooking.startBooking();
+        completedBooking.completeBooking();
+
+        bookings.add(
+                completedBooking
+        );
+
+
+        return bookings;
+    }
+
+
+    // =========================================================
+    // SHOW BORROWING
+    // =========================================================
 
     private void showBorrowing(
             TextView borrowingTab,
@@ -138,6 +332,10 @@ public class ActivityFragment extends Fragment {
         );
     }
 
+
+    // =========================================================
+    // SHOW LISTINGS
+    // =========================================================
 
     private void showListings(
             TextView borrowingTab,
