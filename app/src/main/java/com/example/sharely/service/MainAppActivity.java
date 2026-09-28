@@ -154,16 +154,22 @@ public class MainAppActivity extends AppCompatActivity {
     // OPEN BROWSE
     // =========================================================
 
-    public void openBrowse(
-            boolean focusSearch
-    ) {
+    public void openBrowse(boolean focusSearch) {
 
-        browseSearchFocusRequested =
-                focusSearch;
+        browseSearchFocusRequested = focusSearch;
 
-        bottomNavigation.setSelectedItemId(
-                R.id.navBrowse
-        );
+        if (bottomNavigation.getSelectedItemId() == R.id.navBrowse) {
+
+            loadFragment(
+                    new BrowseFragment()
+            );
+
+        } else {
+
+            bottomNavigation.setSelectedItemId(
+                    R.id.navBrowse
+            );
+        }
     }
 
 
