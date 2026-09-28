@@ -42,6 +42,21 @@ public class Booking {
         }
     }
 
+    public void startBooking() {
+
+        if (status == BookingStatus.ACCEPTED) {
+            status = BookingStatus.ACTIVE;
+        }
+    }
+
+
+    public void completeBooking() {
+
+        if (status == BookingStatus.ACTIVE) {
+            status = BookingStatus.COMPLETED;
+        }
+    }
+
     public BookingStatus getStatus() {
         return status;
     }
