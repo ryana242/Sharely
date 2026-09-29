@@ -196,4 +196,202 @@ public class BookingServiceTest {
                 newBooking.getStatus()
         );
     }
+
+    @Test
+    public void requestInsideAvailabilityWithoutConflict_returnsTrue() {
+
+        BookingService service =
+                new BookingService();
+
+        List<AvailabilitySlot> availability =
+                new ArrayList<>();
+
+        availability.add(
+                new AvailabilitySlot(
+                        1000,
+                        10000
+                )
+        );
+
+
+        Booking request =
+                new Booking(
+                        "B001",
+                        "USER1",
+                        "ITEM1",
+                        new AvailabilitySlot(
+                                2000,
+                                4000
+                        )
+                );
+
+
+        List<Booking> existingBookings =
+                new ArrayList<>();
+
+
+        assertTrue(
+                service.canRequestBooking(
+                        request,
+                        availability,
+                        existingBookings
+                )
+        );
+    }
+
+    @Test
+    public void requestOutsideAvailability_returnsFalse() {
+
+        BookingService service =
+                new BookingService();
+
+        List<AvailabilitySlot> availability =
+                new ArrayList<>();
+
+        availability.add(
+                new AvailabilitySlot(
+                        1000,
+                        5000
+                )
+        );
+
+
+        Booking request =
+                new Booking(
+                        "B001",
+                        "USER1",
+                        "ITEM1",
+                        new AvailabilitySlot(
+                                4000,
+                                7000
+                        )
+                );
+
+
+        assertFalse(
+                service.canRequestBooking(
+                        request,
+                        availability,
+                        new ArrayList<>()
+                )
+        );
+    }
+
+    @Test
+    public void requestConflictsWithAcceptedBooking_returnsFalse() {
+
+        BookingService service =
+                new BookingService();
+
+        List<AvailabilitySlot> availability =
+                new ArrayList<>();
+
+        availability.add(
+                new AvailabilitySlot(
+                        1000,
+                        10000
+                )
+        );
+
+
+        Booking existing =
+                new Booking(
+                        "B001",
+                        "USER2",
+                        "ITEM1",
+                        new AvailabilitySlot(
+                                3000,
+                                6000
+                        )
+                );
+
+        existing.acceptBooking();
+
+
+        List<Booking> existingBookings =
+                new ArrayList<>();
+
+        existingBookings.add(
+                existing
+        );
+
+
+        Booking request =
+                new Booking(
+                        "B002",
+                        "USER1",
+                        "ITEM1",
+                        new AvailabilitySlot(
+                                4000,
+                                5000
+                        )
+                );
+
+
+        assertFalse(
+                service.canRequestBooking(
+                        request,
+                        availability,
+                        existingBookings
+                )
+        );
+    }
+
+    @Test
+    public void pendingBooking_doesNotBlockAnotherRequest() {
+
+        BookingService service =
+                new BookingService();
+
+        List<AvailabilitySlot> availability =
+                new ArrayList<>();
+
+        availability.add(
+                new AvailabilitySlot(
+                        1000,
+                        10000
+                )
+        );
+
+
+        Booking pending =
+                new Booking(
+                        "B001",
+                        "USER2",
+                        "ITEM1",
+                        new AvailabilitySlot(
+                                3000,
+                                6000
+                        )
+                );
+
+
+        List<Booking> existingBookings =
+                new ArrayList<>();
+
+        existingBookings.add(
+                pending
+        );
+
+
+        Booking request =
+                new Booking(
+                        "B002",
+                        "USER1",
+                        "ITEM1",
+                        new AvailabilitySlot(
+                                4000,
+                                5000
+                        )
+                );
+
+
+        assertTrue(
+                service.canRequestBooking(
+                        request,
+                        availability,
+                        existingBookings
+                )
+        );
+    }
 }

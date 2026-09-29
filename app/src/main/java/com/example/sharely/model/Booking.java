@@ -76,4 +76,8 @@ public class Booking {
         return status == BookingStatus.ACCEPTED
                 || status == BookingStatus.ACTIVE;
     }
+
+    public AvailabilitySlot getBookingSlot() {
+        return bookingSlot;
+    }
 }
