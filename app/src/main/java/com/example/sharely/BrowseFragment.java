@@ -29,6 +29,8 @@ import androidx.fragment.app.Fragment;
 import com.example.sharely.service.ItemSearchService;
 import com.example.sharely.service.LocationService;
 
+import java.util.Locale;
+
 public class BrowseFragment extends Fragment {
 
     // =========================================================
@@ -42,6 +44,7 @@ public class BrowseFragment extends Fragment {
 
     private TextView drillInfoText;
     private TextView tentInfoText;
+    private TextView resultCountText;
 
 
     // =========================================================
@@ -72,8 +75,8 @@ public class BrowseFragment extends Fragment {
 
 
     /*
-     * Until the device location becomes available,
-     * these values remain extremely large.
+     * Until the user's device location becomes available,
+     * the listing distances remain unknown.
      */
     private double drillDistanceKm =
             Double.MAX_VALUE;
@@ -108,18 +111,22 @@ public class BrowseFragment extends Fragment {
             locationPermissionLauncher =
 
             registerForActivityResult(
-                    new ActivityResultContracts.RequestMultiplePermissions(),
+
+                    new ActivityResultContracts
+                            .RequestMultiplePermissions(),
 
                     result -> {
 
                         Boolean fineGranted =
                                 result.get(
-                                        Manifest.permission.ACCESS_FINE_LOCATION
+                                        Manifest.permission
+                                                .ACCESS_FINE_LOCATION
                                 );
 
                         Boolean coarseGranted =
                                 result.get(
-                                        Manifest.permission.ACCESS_COARSE_LOCATION
+                                        Manifest.permission
+                                                .ACCESS_COARSE_LOCATION
                                 );
 
 
@@ -234,6 +241,12 @@ public class BrowseFragment extends Fragment {
         tentInfoText =
                 view.findViewById(
                         R.id.textTentInfo
+                );
+
+
+        resultCountText =
+                view.findViewById(
+                        R.id.textResultCount
                 );
 
 
@@ -509,7 +522,8 @@ public class BrowseFragment extends Fragment {
 
                     keyboard.showSoftInput(
                             searchField,
-                            InputMethodManager.SHOW_IMPLICIT
+                            InputMethodManager
+                                    .SHOW_IMPLICIT
                     );
                 }
             });
@@ -619,7 +633,7 @@ public class BrowseFragment extends Fragment {
 
 
         // -----------------------------------------------------
-        // SHOW / HIDE
+        // SHOW / HIDE CARDS
         // -----------------------------------------------------
 
         cardDrill.setVisibility(
@@ -634,6 +648,41 @@ public class BrowseFragment extends Fragment {
                         ? View.VISIBLE
                         : View.GONE
         );
+
+
+        // -----------------------------------------------------
+        // RESULT COUNT
+        // -----------------------------------------------------
+
+        int visibleCount =
+                0;
+
+
+        if (drillMatches) {
+
+            visibleCount++;
+        }
+
+
+        if (tentMatches) {
+
+            visibleCount++;
+        }
+
+
+        if (resultCountText != null) {
+
+            resultCountText.setText(
+
+                    visibleCount
+                            +
+                            (
+                                    visibleCount == 1
+                                            ? " item"
+                                            : " items"
+                            )
+            );
+        }
     }
 
 
@@ -866,24 +915,28 @@ public class BrowseFragment extends Fragment {
 
                 ContextCompat.checkSelfPermission(
                         requireContext(),
-                        Manifest.permission.ACCESS_FINE_LOCATION
+                        Manifest.permission
+                                .ACCESS_FINE_LOCATION
                 )
 
                         ==
 
-                        PackageManager.PERMISSION_GRANTED;
+                        PackageManager
+                                .PERMISSION_GRANTED;
 
 
         boolean coarseGranted =
 
                 ContextCompat.checkSelfPermission(
                         requireContext(),
-                        Manifest.permission.ACCESS_COARSE_LOCATION
+                        Manifest.permission
+                                .ACCESS_COARSE_LOCATION
                 )
 
                         ==
 
-                        PackageManager.PERMISSION_GRANTED;
+                        PackageManager
+                                .PERMISSION_GRANTED;
 
 
         if (fineGranted
@@ -897,9 +950,11 @@ public class BrowseFragment extends Fragment {
 
                     new String[]{
 
-                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission
+                                    .ACCESS_FINE_LOCATION,
 
-                            Manifest.permission.ACCESS_COARSE_LOCATION
+                            Manifest.permission
+                                    .ACCESS_COARSE_LOCATION
                     }
             );
         }
@@ -922,24 +977,28 @@ public class BrowseFragment extends Fragment {
 
                 ContextCompat.checkSelfPermission(
                         requireContext(),
-                        Manifest.permission.ACCESS_FINE_LOCATION
+                        Manifest.permission
+                                .ACCESS_FINE_LOCATION
                 )
 
                         ==
 
-                        PackageManager.PERMISSION_GRANTED;
+                        PackageManager
+                                .PERMISSION_GRANTED;
 
 
         boolean coarseGranted =
 
                 ContextCompat.checkSelfPermission(
                         requireContext(),
-                        Manifest.permission.ACCESS_COARSE_LOCATION
+                        Manifest.permission
+                                .ACCESS_COARSE_LOCATION
                 )
 
                         ==
 
-                        PackageManager.PERMISSION_GRANTED;
+                        PackageManager
+                                .PERMISSION_GRANTED;
 
 
         if (!fineGranted
@@ -997,7 +1056,8 @@ public class BrowseFragment extends Fragment {
 
                 location =
                         manager.getLastKnownLocation(
-                                LocationManager.NETWORK_PROVIDER
+                                LocationManager
+                                        .NETWORK_PROVIDER
                         );
             }
 
@@ -1132,6 +1192,7 @@ public class BrowseFragment extends Fragment {
 
 
         return String.format(
+                Locale.getDefault(),
                 "%.1f km away",
                 distanceKm
         );
