@@ -1,29 +1,27 @@
 package com.example.sharely;
 
+import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
+import android.content.Intent;
 import android.os.Bundle;
+import android.widget.Button;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import android.widget.Button;
-import android.widget.TextView;
-import android.content.Intent;
-
-import android.widget.Toast;
 
 import com.example.sharely.model.AvailabilitySlot;
 import com.example.sharely.model.Booking;
 import com.example.sharely.service.BookingService;
 
 import java.util.ArrayList;
-import java.util.List;
-
 import java.util.Calendar;
-
-import android.app.DatePickerDialog;
-import android.app.TimePickerDialog;
+import java.util.List;
+import java.util.Locale;
 
 public class ItemDetailsActivity extends AppCompatActivity {
 
@@ -33,42 +31,410 @@ public class ItemDetailsActivity extends AppCompatActivity {
     private boolean startSelected = false;
     private boolean endSelected = false;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
+
         EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_item_details);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.itemDetailsMain), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
-        TextView itemName = findViewById(R.id.textItemName);
-        TextView itemPrice = findViewById(R.id.textItemPrice);
-        TextView itemInfo = findViewById(R.id.textItemInfo);
-        TextView itemDescription = findViewById(R.id.textItemDescription);
 
-        Intent intent = getIntent();
+        setContentView(
+                R.layout.activity_item_details
+        );
 
-        String itemId = intent.getStringExtra("itemId");
 
-        itemName.setText(intent.getStringExtra("name"));
-        itemPrice.setText(intent.getStringExtra("price"));
-        itemInfo.setText(intent.getStringExtra("info"));
-        itemDescription.setText(intent.getStringExtra("description"));
-        Button backButton = findViewById(R.id.buttonBack);
+        // =====================================================
+        // SYSTEM BAR SPACING
+        // =====================================================
+
+        ViewCompat.setOnApplyWindowInsetsListener(
+                findViewById(R.id.itemDetailsMain),
+
+                (v, insets) -> {
+
+                    Insets systemBars =
+                            insets.getInsets(
+                                    WindowInsetsCompat.Type.systemBars()
+                            );
+
+                    v.setPadding(
+                            systemBars.left,
+                            systemBars.top,
+                            systemBars.right,
+                            systemBars.bottom
+                    );
+
+                    return insets;
+                }
+        );
+
+
+        // =====================================================
+        // ITEM INFORMATION
+        // =====================================================
+
+        TextView itemName =
+                findViewById(
+                        R.id.textItemName
+                );
+
+        TextView itemPrice =
+                findViewById(
+                        R.id.textItemPrice
+                );
+
+        TextView itemInfo =
+                findViewById(
+                        R.id.textItemInfo
+                );
+
+        TextView itemDescription =
+                findViewById(
+                        R.id.textItemDescription
+                );
+
+
+        Intent intent =
+                getIntent();
+
+
+        String itemId =
+                intent.getStringExtra(
+                        "itemId"
+                );
+
+
+        itemName.setText(
+                intent.getStringExtra(
+                        "name"
+                )
+        );
+
+        itemPrice.setText(
+                intent.getStringExtra(
+                        "price"
+                )
+        );
+
+        itemInfo.setText(
+                intent.getStringExtra(
+                        "info"
+                )
+        );
+
+        itemDescription.setText(
+                intent.getStringExtra(
+                        "description"
+                )
+        );
+
+
+        // =====================================================
+        // CALENDARS
+        // =====================================================
+
+        startCalendar =
+                Calendar.getInstance();
+
+        endCalendar =
+                Calendar.getInstance();
+
+
+        // =====================================================
+        // TIME TEXT
+        // =====================================================
+
+        TextView startTimeText =
+                findViewById(
+                        R.id.textStartTime
+                );
+
+        TextView endTimeText =
+                findViewById(
+                        R.id.textEndTime
+                );
+
+
+        // =====================================================
+        // BUTTONS
+        // =====================================================
+
+        Button backButton =
+                findViewById(
+                        R.id.buttonBack
+                );
+
+        Button selectStartButton =
+                findViewById(
+                        R.id.buttonSelectStart
+                );
+
+        Button selectEndButton =
+                findViewById(
+                        R.id.buttonSelectEnd
+                );
+
+        Button requestBookingButton =
+                findViewById(
+                        R.id.buttonRequestBooking
+                );
+
+
+        // =====================================================
+        // BACK BUTTON
+        // =====================================================
 
         backButton.setOnClickListener(v -> {
+
             finish();
         });
 
-        Button requestBookingButton =
-                findViewById(R.id.buttonRequestBooking);
+
+        // =====================================================
+        // SELECT START DATE + TIME
+        // =====================================================
+
+        selectStartButton.setOnClickListener(v -> {
+
+            DatePickerDialog datePicker =
+                    new DatePickerDialog(
+
+                            ItemDetailsActivity.this,
+
+                            (view, year, month, dayOfMonth) -> {
+
+                                startCalendar.set(
+                                        Calendar.YEAR,
+                                        year
+                                );
+
+                                startCalendar.set(
+                                        Calendar.MONTH,
+                                        month
+                                );
+
+                                startCalendar.set(
+                                        Calendar.DAY_OF_MONTH,
+                                        dayOfMonth
+                                );
+
+
+                                TimePickerDialog timePicker =
+                                        new TimePickerDialog(
+
+                                                ItemDetailsActivity.this,
+
+                                                (timeView,
+                                                 hourOfDay,
+                                                 minute) -> {
+
+                                                    startCalendar.set(
+                                                            Calendar.HOUR_OF_DAY,
+                                                            hourOfDay
+                                                    );
+
+                                                    startCalendar.set(
+                                                            Calendar.MINUTE,
+                                                            minute
+                                                    );
+
+                                                    startCalendar.set(
+                                                            Calendar.SECOND,
+                                                            0
+                                                    );
+
+                                                    startCalendar.set(
+                                                            Calendar.MILLISECOND,
+                                                            0
+                                                    );
+
+
+                                                    startSelected =
+                                                            true;
+
+
+                                                    String text =
+                                                            String.format(
+                                                                    Locale.getDefault(),
+                                                                    "Start: %02d/%02d/%04d %02d:%02d",
+                                                                    dayOfMonth,
+                                                                    month + 1,
+                                                                    year,
+                                                                    hourOfDay,
+                                                                    minute
+                                                            );
+
+
+                                                    startTimeText.setText(
+                                                            text
+                                                    );
+                                                },
+
+                                                startCalendar.get(
+                                                        Calendar.HOUR_OF_DAY
+                                                ),
+
+                                                startCalendar.get(
+                                                        Calendar.MINUTE
+                                                ),
+
+                                                true
+                                        );
+
+
+                                timePicker.show();
+                            },
+
+                            startCalendar.get(
+                                    Calendar.YEAR
+                            ),
+
+                            startCalendar.get(
+                                    Calendar.MONTH
+                            ),
+
+                            startCalendar.get(
+                                    Calendar.DAY_OF_MONTH
+                            )
+                    );
+
+
+            datePicker.show();
+        });
+
+
+        // =====================================================
+        // SELECT END DATE + TIME
+        // =====================================================
+
+        selectEndButton.setOnClickListener(v -> {
+
+            DatePickerDialog datePicker =
+                    new DatePickerDialog(
+
+                            ItemDetailsActivity.this,
+
+                            (view, year, month, dayOfMonth) -> {
+
+                                endCalendar.set(
+                                        Calendar.YEAR,
+                                        year
+                                );
+
+                                endCalendar.set(
+                                        Calendar.MONTH,
+                                        month
+                                );
+
+                                endCalendar.set(
+                                        Calendar.DAY_OF_MONTH,
+                                        dayOfMonth
+                                );
+
+
+                                TimePickerDialog timePicker =
+                                        new TimePickerDialog(
+
+                                                ItemDetailsActivity.this,
+
+                                                (timeView,
+                                                 hourOfDay,
+                                                 minute) -> {
+
+                                                    endCalendar.set(
+                                                            Calendar.HOUR_OF_DAY,
+                                                            hourOfDay
+                                                    );
+
+                                                    endCalendar.set(
+                                                            Calendar.MINUTE,
+                                                            minute
+                                                    );
+
+                                                    endCalendar.set(
+                                                            Calendar.SECOND,
+                                                            0
+                                                    );
+
+                                                    endCalendar.set(
+                                                            Calendar.MILLISECOND,
+                                                            0
+                                                    );
+
+
+                                                    /*
+                                                     * Only mark the end time
+                                                     * as selected after the
+                                                     * TimePicker is completed.
+                                                     */
+                                                    endSelected =
+                                                            true;
+
+
+                                                    String text =
+                                                            String.format(
+                                                                    Locale.getDefault(),
+                                                                    "End: %02d/%02d/%04d %02d:%02d",
+                                                                    dayOfMonth,
+                                                                    month + 1,
+                                                                    year,
+                                                                    hourOfDay,
+                                                                    minute
+                                                            );
+
+
+                                                    endTimeText.setText(
+                                                            text
+                                                    );
+                                                },
+
+                                                endCalendar.get(
+                                                        Calendar.HOUR_OF_DAY
+                                                ),
+
+                                                endCalendar.get(
+                                                        Calendar.MINUTE
+                                                ),
+
+                                                true
+                                        );
+
+
+                                timePicker.show();
+                            },
+
+                            endCalendar.get(
+                                    Calendar.YEAR
+                            ),
+
+                            endCalendar.get(
+                                    Calendar.MONTH
+                            ),
+
+                            endCalendar.get(
+                                    Calendar.DAY_OF_MONTH
+                            )
+                    );
+
+
+            datePicker.show();
+        });
+
+
+        // =====================================================
+        // REQUEST BOOKING
+        // =====================================================
 
         requestBookingButton.setOnClickListener(v -> {
 
+            // -------------------------------------------------
+            // BOTH TIMES MUST BE SELECTED
+            // -------------------------------------------------
 
-            if (!startSelected || !endSelected) {
+            if (!startSelected
+                    || !endSelected) {
+
                 Toast.makeText(
                         ItemDetailsActivity.this,
                         "Please select both start and end time",
@@ -78,227 +444,177 @@ public class ItemDetailsActivity extends AppCompatActivity {
                 return;
             }
 
+
+            // -------------------------------------------------
+            // CREATE REQUESTED SLOT
+            // -------------------------------------------------
+
             AvailabilitySlot requestedSlot =
                     new AvailabilitySlot(
-                            startCalendar.getTimeInMillis(),
-                            endCalendar.getTimeInMillis()
+
+                            startCalendar
+                                    .getTimeInMillis(),
+
+                            endCalendar
+                                    .getTimeInMillis()
                     );
 
-            Booking newBooking = new Booking(
-                    "B002",
-                    "CURRENT_USER",
-                    itemId,
-                    requestedSlot
-            );
 
-            List<Booking> existingBookings = new ArrayList<>();
+            if (!requestedSlot.isValid()) {
 
-//            Booking existingBooking = new Booking(
-//                    "B001",
-//                    "ANOTHER_USER",
-//                    "ITEM1",
-//                    new AvailabilitySlot(3000, 7000)
-//            );
-//
-//            existingBooking.acceptBooking();
-//
-//            existingBookings.add(existingBooking);
+                Toast.makeText(
+                        ItemDetailsActivity.this,
+                        "End time must be after start time",
+                        Toast.LENGTH_SHORT
+                ).show();
 
-            BookingService bookingService = new BookingService();
+                return;
+            }
 
-            boolean accepted =
-                    bookingService.acceptBooking(
+
+            // -------------------------------------------------
+            // CREATE PENDING BOOKING
+            // -------------------------------------------------
+
+            Booking newBooking =
+                    new Booking(
+
+                            "B002",
+
+                            "CURRENT_USER",
+
+                            itemId,
+
+                            requestedSlot
+                    );
+
+
+            // =================================================
+            // TEMPORARY OWNER AVAILABILITY
+            // =================================================
+            //
+            // For now we simulate that this item is available
+            // from the current moment for the next 30 days.
+            //
+            // Leo will later replace this with availability
+            // loaded from Firestore.
+            // =================================================
+
+            List<AvailabilitySlot> ownerAvailability =
+                    createDemoAvailability();
+
+
+            // =================================================
+            // TEMPORARY EXISTING BOOKINGS
+            // =================================================
+            //
+            // Later this will come from Leo's BookingRepository.
+            // =================================================
+
+            List<Booking> existingBookings =
+                    new ArrayList<>();
+
+
+            // -------------------------------------------------
+            // VALIDATE REQUEST
+            // -------------------------------------------------
+
+            BookingService bookingService =
+                    new BookingService();
+
+
+            boolean canRequest =
+                    bookingService.canRequestBooking(
+
                             newBooking,
+
+                            ownerAvailability,
+
                             existingBookings
                     );
 
-            if (accepted) {
+
+            // -------------------------------------------------
+            // RESULT
+            // -------------------------------------------------
+
+            if (canRequest) {
+
+                /*
+                 * We DO NOT call acceptBooking() here.
+                 *
+                 * The booking remains PENDING.
+                 * The owner will accept or reject it later.
+                 */
+
                 Toast.makeText(
                         ItemDetailsActivity.this,
-                        "Booking accepted",
+                        "Booking request sent",
                         Toast.LENGTH_SHORT
                 ).show();
+
             } else {
+
                 Toast.makeText(
                         ItemDetailsActivity.this,
-                        "Booking unavailable",
+                        "Selected time is unavailable",
                         Toast.LENGTH_SHORT
                 ).show();
             }
         });
+    }
 
-//        Booking newBooking = new Booking(
-//                "B002",
-//                "CURRENT_USER",
-//                "ITEM1",
-//                requestedSlot
-//        );
-//
-//        List<Booking> existingBookings = new ArrayList<>();
-//
-//        BookingService bookingService = new BookingService();
-//
-//        boolean accepted =
-//                bookingService.acceptBooking(
-//                        newBooking,
-//                        existingBookings
-//                );
 
-        startCalendar = Calendar.getInstance();
-        endCalendar = Calendar.getInstance();
+    // =========================================================
+    // TEMPORARY OWNER AVAILABILITY
+    // =========================================================
 
-        TextView startTimeText =
-                findViewById(R.id.textStartTime);
+    private List<AvailabilitySlot> createDemoAvailability() {
 
-        TextView endTimeText =
-                findViewById(R.id.textEndTime);
+        List<AvailabilitySlot> availability =
+                new ArrayList<>();
 
-        Button selectStartButton =
-                findViewById(R.id.buttonSelectStart);
 
-        Button selectEndButton =
-                findViewById(R.id.buttonSelectEnd);
+        Calendar availableFrom =
+                Calendar.getInstance();
 
-        selectStartButton.setOnClickListener(v -> {
+        availableFrom.set(
+                Calendar.SECOND,
+                0
+        );
 
-            DatePickerDialog datePicker = new DatePickerDialog(
-                    ItemDetailsActivity.this,
-                    (view, year, month, dayOfMonth) -> {
+        availableFrom.set(
+                Calendar.MILLISECOND,
+                0
+        );
 
-                        startCalendar.set(
-                                Calendar.YEAR,
-                                year
-                        );
 
-                        startCalendar.set(
-                                Calendar.MONTH,
-                                month
-                        );
+        Calendar availableUntil =
+                (Calendar)
+                        availableFrom.clone();
 
-                        startCalendar.set(
-                                Calendar.DAY_OF_MONTH,
-                                dayOfMonth
-                        );
+        availableUntil.add(
+                Calendar.DAY_OF_MONTH,
+                30
+        );
 
-                        TimePickerDialog timePicker =
-                                new TimePickerDialog(
-                                        ItemDetailsActivity.this,
-                                        (timeView, hourOfDay, minute) -> {
 
-                                            startCalendar.set(
-                                                    Calendar.HOUR_OF_DAY,
-                                                    hourOfDay
-                                            );
+        AvailabilitySlot slot =
+                new AvailabilitySlot(
 
-                                            startCalendar.set(
-                                                    Calendar.MINUTE,
-                                                    minute
-                                            );
+                        availableFrom
+                                .getTimeInMillis(),
 
-                                            startCalendar.set(
-                                                    Calendar.SECOND,
-                                                    0
-                                            );
+                        availableUntil
+                                .getTimeInMillis()
+                );
 
-                                            startSelected = true;
 
-                                            String text =
-                                                    "Start: "
-                                                            + dayOfMonth + "/"
-                                                            + (month + 1) + "/"
-                                                            + year + " "
-                                                            + String.format(
-                                                            "%02d:%02d",
-                                                            hourOfDay,
-                                                            minute
-                                                    );
+        availability.add(
+                slot
+        );
 
-                                            startTimeText.setText(text);
-                                        },
-                                        startCalendar.get(Calendar.HOUR_OF_DAY),
-                                        startCalendar.get(Calendar.MINUTE),
-                                        true
-                                );
 
-                        timePicker.show();
-                    },
-                    startCalendar.get(Calendar.YEAR),
-                    startCalendar.get(Calendar.MONTH),
-                    startCalendar.get(Calendar.DAY_OF_MONTH)
-            );
-
-            datePicker.show();
-        });
-
-        selectEndButton.setOnClickListener(v -> {
-
-            DatePickerDialog datePicker = new DatePickerDialog(
-                    ItemDetailsActivity.this,
-                    (view, year, month, dayOfMonth) -> {
-
-                        endCalendar.set(
-                                Calendar.YEAR,
-                                year
-                        );
-
-                        endCalendar.set(
-                                Calendar.MONTH,
-                                month
-                        );
-
-                        endCalendar.set(
-                                Calendar.DAY_OF_MONTH,
-                                dayOfMonth
-                        );
-
-                        endSelected = true;
-
-                        TimePickerDialog timePicker =
-                                new TimePickerDialog(
-                                        ItemDetailsActivity.this,
-                                        (timeView, hourOfDay, minute) -> {
-
-                                            endCalendar.set(
-                                                    Calendar.HOUR_OF_DAY,
-                                                    hourOfDay
-                                            );
-
-                                            endCalendar.set(
-                                                    Calendar.MINUTE,
-                                                    minute
-                                            );
-
-                                            endCalendar.set(
-                                                    Calendar.SECOND,
-                                                    0
-                                            );
-
-                                            String text =
-                                                    "End: "
-                                                            + dayOfMonth + "/"
-                                                            + (month + 1) + "/"
-                                                            + year + " "
-                                                            + String.format(
-                                                            "%02d:%02d",
-                                                            hourOfDay,
-                                                            minute
-                                                    );
-
-                                            endTimeText.setText(text);
-                                        },
-                                        endCalendar.get(Calendar.HOUR_OF_DAY),
-                                        endCalendar.get(Calendar.MINUTE),
-                                        true
-                                );
-
-                        timePicker.show();
-                    },
-                    endCalendar.get(Calendar.YEAR),
-                    endCalendar.get(Calendar.MONTH),
-                    endCalendar.get(Calendar.DAY_OF_MONTH)
-            );
-
-            datePicker.show();
-        });
+        return availability;
     }
 }
