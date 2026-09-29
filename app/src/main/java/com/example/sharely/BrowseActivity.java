@@ -10,6 +10,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AlertDialog;
@@ -18,7 +19,16 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.example.sharely.data.ItemRepository;
 import com.example.sharely.service.ItemSearchService;
+import com.google.firebase.firestore.DocumentSnapshot;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import android.widget.ImageView;
+
+import com.bumptech.glide.Glide;
 
 public class BrowseActivity extends AppCompatActivity {
 
@@ -27,9 +37,9 @@ public class BrowseActivity extends AppCompatActivity {
     // ---------------------------------------------------------
 
     private EditText searchField;
+    private LinearLayout itemsContainer;
 
-    private LinearLayout cardDrill;
-    private LinearLayout cardTent;
+    private TextView textItemCount;
 
 
     // ---------------------------------------------------------
@@ -45,6 +55,9 @@ public class BrowseActivity extends AppCompatActivity {
 
     private Double selectedMaxDistanceKm = null;
 
+    private final List<DocumentSnapshot> allItems = new ArrayList<>();
+
+    private ItemRepository itemRepository;
 
     // =========================================================
     // ON CREATE
@@ -89,14 +102,11 @@ public class BrowseActivity extends AppCompatActivity {
         // FIND MAIN VIEWS
         // -----------------------------------------------------
 
-        searchField =
-                findViewById(R.id.editSearch);
+        searchField = findViewById(R.id.editSearch);
 
-        cardDrill =
-                findViewById(R.id.cardDrill);
+        itemsContainer = findViewById(R.id.itemsContainer);
 
-        cardTent =
-                findViewById(R.id.cardTent);
+        textItemCount = findViewById(R.id.textItemCount);
 
 
         // -----------------------------------------------------
@@ -120,12 +130,6 @@ public class BrowseActivity extends AppCompatActivity {
         View backButton =
                 findViewById(R.id.buttonBack);
 
-        View viewDrillButton =
-                findViewById(R.id.buttonViewDrill);
-
-        View viewTentButton =
-                findViewById(R.id.buttonViewTent);
-
 
         // -----------------------------------------------------
         // CREATE SEARCH SERVICE
@@ -134,6 +138,10 @@ public class BrowseActivity extends AppCompatActivity {
         searchService =
                 new ItemSearchService();
 
+        // -----------------------------------------------------
+        // INITIAL itemRepository
+        // -----------------------------------------------------
+        itemRepository = new ItemRepository();
 
         // -----------------------------------------------------
         // BACK BUTTON
@@ -141,88 +149,6 @@ public class BrowseActivity extends AppCompatActivity {
 
         backButton.setOnClickListener(v -> {
             finish();
-        });
-
-
-        // -----------------------------------------------------
-        // DRILL → ITEM DETAILS
-        // -----------------------------------------------------
-
-        viewDrillButton.setOnClickListener(v -> {
-
-            Intent intent =
-                    new Intent(
-                            BrowseActivity.this,
-                            ItemDetailsActivity.class
-                    );
-
-            intent.putExtra(
-                    "itemId",
-                    "ITEM1"
-            );
-
-            intent.putExtra(
-                    "name",
-                    "Cordless Drill"
-            );
-
-            intent.putExtra(
-                    "price",
-                    "$5 per day"
-            );
-
-            intent.putExtra(
-                    "info",
-                    "1.2 km away • ★ 4.8"
-            );
-
-            intent.putExtra(
-                    "description",
-                    "A reliable cordless drill suitable for small home projects."
-            );
-
-            startActivity(intent);
-        });
-
-
-        // -----------------------------------------------------
-        // TENT → ITEM DETAILS
-        // -----------------------------------------------------
-
-        viewTentButton.setOnClickListener(v -> {
-
-            Intent intent =
-                    new Intent(
-                            BrowseActivity.this,
-                            ItemDetailsActivity.class
-                    );
-
-            intent.putExtra(
-                    "itemId",
-                    "ITEM2"
-            );
-
-            intent.putExtra(
-                    "name",
-                    "Camping Tent"
-            );
-
-            intent.putExtra(
-                    "price",
-                    "$8 per day"
-            );
-
-            intent.putExtra(
-                    "info",
-                    "2.4 km away • ★ 4.6"
-            );
-
-            intent.putExtra(
-                    "description",
-                    "A spacious camping tent suitable for weekend trips."
-            );
-
-            startActivity(intent);
         });
 
 
@@ -336,9 +262,47 @@ public class BrowseActivity extends AppCompatActivity {
         // INITIAL FILTER STATE
         // -----------------------------------------------------
 
-        applyFilters();
+        loadItems();
     }
 
+    // =========================================================
+    // LOAD PAGE INFORMATION
+    // =========================================================
+
+    private void loadItems() {
+
+        itemRepository.getAllItems(
+                new ItemRepository.OnItemsLoadedListener() {
+
+                    @Override
+                    public void onSuccess(
+                            com.google.firebase.firestore.QuerySnapshot querySnapshot
+                    ) {
+
+                        allItems.clear();
+
+                        allItems.addAll(
+                                querySnapshot.getDocuments()
+                        );
+
+                        applyFilters();
+                    }
+
+
+                    @Override
+                    public void onFailure(
+                            Exception e
+                    ) {
+
+                        Toast.makeText(
+                                BrowseActivity.this,
+                                "Failed to load items",
+                                Toast.LENGTH_SHORT
+                        ).show();
+                    }
+                }
+        );
+    }
 
     // =========================================================
     // APPLY ALL FILTERS
@@ -352,92 +316,230 @@ public class BrowseActivity extends AppCompatActivity {
                         .toString();
 
 
-        // -----------------------------------------------------
-        // DRILL
-        // -----------------------------------------------------
-
-        boolean drillMatches =
-                searchService.matchesKeyword(
-                        "Cordless Drill",
-                        query
-                )
-
-                        &&
-
-                        searchService.matchesCategory(
-                                "Tools",
-                                selectedCategory
-                        )
-
-                        &&
-
-                        searchService.matchesMaxPrice(
-                                5.0,
-                                selectedMaxPrice
-                        )
-
-                        &&
-
-                        searchService.matchesMaxDistance(
-                                1.2,
-                                selectedMaxDistanceKm
-                        );
+        // Clear old cards
+        itemsContainer.removeAllViews();
 
 
-        // -----------------------------------------------------
-        // TENT
-        // -----------------------------------------------------
-
-        boolean tentMatches =
-                searchService.matchesKeyword(
-                        "Camping Tent",
-                        query
-                )
-
-                        &&
-
-                        searchService.matchesCategory(
-                                "Camping",
-                                selectedCategory
-                        )
-
-                        &&
-
-                        searchService.matchesMaxPrice(
-                                8.0,
-                                selectedMaxPrice
-                        )
-
-                        &&
-
-                        searchService.matchesMaxDistance(
-                                2.4,
-                                selectedMaxDistanceKm
-                        );
+        int visibleCount = 0;
 
 
-        // -----------------------------------------------------
-        // SHOW / HIDE DRILL
-        // -----------------------------------------------------
+        for (DocumentSnapshot document : allItems) {
 
-        cardDrill.setVisibility(
-                drillMatches
-                        ? View.VISIBLE
-                        : View.GONE
-        );
+            String itemId =
+                    document.getString("itemId");
+
+            String itemName =
+                    document.getString("itemName");
+
+            String description =
+                    document.getString("description");
+
+            String category =
+                    document.getString("category");
+
+            String location =
+                    document.getString("location");
+
+            Double price =
+                    document.getDouble("price");
+
+            ArrayList<String> imageUrls =
+
+                    (ArrayList<String>) document.get("imageUrls");
+
+            if (itemName == null) {
+                continue;
+            }
+
+            if (price == null) {
+                price = 0.0;
+            }
 
 
-        // -----------------------------------------------------
-        // SHOW / HIDE TENT
-        // -----------------------------------------------------
+            // Keyword filter
+            boolean matchesKeyword =
+                    searchService.matchesKeyword(
+                            itemName,
+                            query
+                    );
 
-        cardTent.setVisibility(
-                tentMatches
-                        ? View.VISIBLE
-                        : View.GONE
+
+            // Category filter
+            boolean matchesCategory =
+                    searchService.matchesCategory(
+                            category,
+                            selectedCategory
+                    );
+
+
+            // Price filter
+            boolean matchesPrice =
+                    searchService.matchesMaxPrice(
+                            price,
+                            selectedMaxPrice
+                    );
+
+
+            if (
+                    matchesKeyword
+                            &&
+                            matchesCategory
+                            &&
+                            matchesPrice
+            ) {
+
+                addItemCard(
+                        itemId,
+                        itemName,
+                        description,
+                        category,
+                        price,
+                        location,
+                        imageUrls
+                );
+
+                visibleCount++;
+            }
+        }
+
+
+        textItemCount.setText(
+                visibleCount == 1
+                        ? "1 item"
+                        : visibleCount + " items"
         );
     }
 
+    //DISPLAY CARD
+    private void addItemCard(
+            String itemId,
+            String itemName,
+            String description,
+            String category,
+            double price,
+            String location,
+            ArrayList<String> imageUrls
+    ) {
+
+        View card =
+                getLayoutInflater().inflate(
+                        R.layout.item_card,
+                        itemsContainer,
+                        false
+                );
+
+
+        TextView nameView =
+                card.findViewById(
+                        R.id.textItemName
+                );
+
+        TextView priceView =
+                card.findViewById(
+                        R.id.textItemPrice
+                );
+
+        TextView infoView =
+                card.findViewById(
+                        R.id.textItemInfo
+                );
+
+        View detailsButton =
+                card.findViewById(
+                        R.id.buttonViewDetails
+                );
+
+        ImageView itemImage = card.findViewById(
+                R.id.imageItem);
+
+        // ---------------------------------------------------------
+        // DISPLAY DATA
+        // ---------------------------------------------------------
+
+        if (imageUrls != null && !imageUrls.isEmpty()) {
+
+            Glide.with(this)
+                    .load(imageUrls.get(0))
+                    .fitCenter()
+                    .into(itemImage);
+        }
+        nameView.setText(
+                itemName
+        );
+
+
+        priceView.setText(
+                "$" + price + " / day"
+        );
+
+
+        if (location != null) {
+
+            infoView.setText(
+                    location
+            );
+
+        } else {
+
+            infoView.setText(
+                    ""
+            );
+        }
+
+
+        // ---------------------------------------------------------
+        // VIEW DETAILS
+        // ---------------------------------------------------------
+
+        detailsButton.setOnClickListener(v -> {
+
+            Intent intent =
+                    new Intent(
+                            BrowseActivity.this,
+                            ItemDetailsActivity.class
+                    );
+
+
+            intent.putExtra(
+                    "itemId",
+                    itemId
+            );
+
+            intent.putExtra(
+                    "name",
+                    itemName
+            );
+
+            intent.putExtra(
+                    "price",
+                    "$" + price + " per day"
+            );
+
+            intent.putExtra(
+                    "info",
+                    location
+            );
+
+            intent.putExtra(
+                    "description",
+                    description
+            );
+            if (imageUrls != null) {
+
+                intent.putStringArrayListExtra(
+                        "imageUrls",
+                        new ArrayList<>(imageUrls)
+                );
+            }
+            startActivity(intent);
+        });
+
+
+        // Add card to Browse page
+        itemsContainer.addView(
+                card
+        );
+    }
 
     // =========================================================
     // CATEGORY FILTER DIALOG
@@ -450,7 +552,8 @@ public class BrowseActivity extends AppCompatActivity {
         String[] categories = {
                 "All categories",
                 "Tools",
-                "Camping"
+                "Camping",
+                "Electronics"
         };
 
 

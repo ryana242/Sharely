@@ -91,6 +91,21 @@
             android:textColor="@color/sharely_text_secondary"
             android:textSize="13sp" />
 
+        <!-- Selected photos -->
+        <HorizontalScrollView
+            android:id="@+id/photoPreviewScroll"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:scrollbars="none"
+            android:visibility="gone">
+            <LinearLayout
+                android:id="@+id/photoPreviewContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
+
         <Button
             android:id="@+id/buttonAddPhoto"
             android:layout_width="match_parent"

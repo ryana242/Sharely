@@ -5,6 +5,8 @@ import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -14,6 +16,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.bumptech.glide.Glide;
 import com.example.sharely.model.AvailabilitySlot;
 import com.example.sharely.model.Booking;
 import com.example.sharely.service.BookingService;
@@ -95,6 +98,20 @@ public class ItemDetailsActivity extends AppCompatActivity {
                 );
 
 
+        // =====================================================
+        // PHOTO CONTAINER
+        // =====================================================
+
+        LinearLayout photoContainer =
+                findViewById(
+                        R.id.photoContainer
+                );
+
+
+        // =====================================================
+        // GET ITEM DATA FROM INTENT
+        // =====================================================
+
         Intent intent =
                 getIntent();
 
@@ -102,6 +119,12 @@ public class ItemDetailsActivity extends AppCompatActivity {
         String itemId =
                 intent.getStringExtra(
                         "itemId"
+                );
+
+
+        ArrayList<String> imageUrls =
+                intent.getStringArrayListExtra(
+                        "imageUrls"
                 );
 
 
@@ -128,6 +151,57 @@ public class ItemDetailsActivity extends AppCompatActivity {
                         "description"
                 )
         );
+
+
+        // =====================================================
+        // DISPLAY ITEM PHOTOS
+        // =====================================================
+
+        if (imageUrls != null
+                && !imageUrls.isEmpty()) {
+
+            for (String imageUrl : imageUrls) {
+
+                ImageView imageView =
+                        new ImageView(this);
+
+
+                LinearLayout.LayoutParams params =
+                        new LinearLayout.LayoutParams(
+                                dpToPx(380),
+                                LinearLayout.LayoutParams.MATCH_PARENT
+                        );
+
+
+                params.setMargins(
+                        0,
+                        0,
+                        dpToPx(12),
+                        0
+                );
+
+
+                imageView.setLayoutParams(
+                        params
+                );
+
+
+                imageView.setScaleType(
+                        ImageView.ScaleType.FIT_CENTER
+                );
+
+
+                Glide.with(this)
+                        .load(imageUrl)
+                        .fitCenter()
+                        .into(imageView);
+
+
+                photoContainer.addView(
+                        imageView
+                );
+            }
+        }
 
 
         // =====================================================
@@ -616,5 +690,21 @@ public class ItemDetailsActivity extends AppCompatActivity {
 
 
         return availability;
+    }
+
+
+    // =========================================================
+    // DP TO PX
+    // =========================================================
+
+    private int dpToPx(int dp) {
+
+        return (int) (
+                dp
+                        *
+                        getResources()
+                                .getDisplayMetrics()
+                                .density
+        );
     }
 }

@@ -1,11 +1,7 @@
 package com.example.sharely;
 
-import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.location.Location;
-import android.location.LocationManager;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -14,22 +10,25 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
+import com.bumptech.glide.Glide;
+import com.example.sharely.data.ItemRepository;
 import com.example.sharely.service.ItemSearchService;
-import com.example.sharely.service.LocationService;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
-import java.util.Locale;
+import java.util.ArrayList;
+import java.util.List;
+
 
 public class BrowseFragment extends Fragment {
 
@@ -39,25 +38,16 @@ public class BrowseFragment extends Fragment {
 
     private EditText searchField;
 
-    private LinearLayout cardDrill;
-    private LinearLayout cardTent;
+    private LinearLayout itemsContainer;
 
-    private TextView drillInfoText;
-    private TextView tentInfoText;
-    private TextView resultCountText;
+    private TextView textItemCount;
 
 
     // =========================================================
-    // SERVICES
+    // SEARCH / FILTER LOGIC
     // =========================================================
 
     private ItemSearchService searchService;
-    private LocationService locationService;
-
-
-    // =========================================================
-    // FILTER STATE
-    // =========================================================
 
     private String selectedCategory = null;
 
@@ -67,93 +57,13 @@ public class BrowseFragment extends Fragment {
 
 
     // =========================================================
-    // USER LOCATION
+    // FIRESTORE DATA
     // =========================================================
 
-    private Double userLatitude = null;
-    private Double userLongitude = null;
+    private final List<DocumentSnapshot> allItems =
+            new ArrayList<>();
 
-
-    /*
-     * Until the user's device location becomes available,
-     * the listing distances remain unknown.
-     */
-    private double drillDistanceKm =
-            Double.MAX_VALUE;
-
-    private double tentDistanceKm =
-            Double.MAX_VALUE;
-
-
-    // =========================================================
-    // TEMPORARY DEMO ITEM LOCATIONS
-    // =========================================================
-
-    private static final double DRILL_LATITUDE =
-            -33.8731;
-
-    private static final double DRILL_LONGITUDE =
-            151.2065;
-
-
-    private static final double TENT_LATITUDE =
-            -33.8790;
-
-    private static final double TENT_LONGITUDE =
-            151.2150;
-
-
-    // =========================================================
-    // LOCATION PERMISSION LAUNCHER
-    // =========================================================
-
-    private final ActivityResultLauncher<String[]>
-            locationPermissionLauncher =
-
-            registerForActivityResult(
-
-                    new ActivityResultContracts
-                            .RequestMultiplePermissions(),
-
-                    result -> {
-
-                        Boolean fineGranted =
-                                result.get(
-                                        Manifest.permission
-                                                .ACCESS_FINE_LOCATION
-                                );
-
-                        Boolean coarseGranted =
-                                result.get(
-                                        Manifest.permission
-                                                .ACCESS_COARSE_LOCATION
-                                );
-
-
-                        boolean granted =
-                                Boolean.TRUE.equals(
-                                        fineGranted
-                                )
-                                        ||
-                                        Boolean.TRUE.equals(
-                                                coarseGranted
-                                        );
-
-
-                        if (granted) {
-
-                            loadCurrentLocation();
-
-                        } else {
-
-                            Toast.makeText(
-                                    requireContext(),
-                                    "Location permission is needed for nearby discovery.",
-                                    Toast.LENGTH_SHORT
-                            ).show();
-                        }
-                    }
-            );
+    private ItemRepository itemRepository;
 
 
     // =========================================================
@@ -161,6 +71,7 @@ public class BrowseFragment extends Fragment {
     // =========================================================
 
     public BrowseFragment() {
+        // Required empty constructor
     }
 
 
@@ -200,18 +111,7 @@ public class BrowseFragment extends Fragment {
 
 
         // -----------------------------------------------------
-        // SERVICES
-        // -----------------------------------------------------
-
-        searchService =
-                new ItemSearchService();
-
-        locationService =
-                new LocationService();
-
-
-        // -----------------------------------------------------
-        // MAIN VIEWS
+        // FIND MAIN VIEWS
         // -----------------------------------------------------
 
         searchField =
@@ -219,39 +119,19 @@ public class BrowseFragment extends Fragment {
                         R.id.editSearch
                 );
 
-
-        cardDrill =
+        itemsContainer =
                 view.findViewById(
-                        R.id.cardDrill
+                        R.id.itemsContainer
                 );
 
-
-        cardTent =
+        textItemCount =
                 view.findViewById(
-                        R.id.cardTent
-                );
-
-
-        drillInfoText =
-                view.findViewById(
-                        R.id.textDrillInfo
-                );
-
-
-        tentInfoText =
-                view.findViewById(
-                        R.id.textTentInfo
-                );
-
-
-        resultCountText =
-                view.findViewById(
-                        R.id.textResultCount
+                        R.id.textItemCount
                 );
 
 
         // -----------------------------------------------------
-        // FILTER BUTTONS
+        // FILTER CONTROLS
         // -----------------------------------------------------
 
         TextView categoryButton =
@@ -259,12 +139,10 @@ public class BrowseFragment extends Fragment {
                         R.id.buttonCategory
                 );
 
-
         TextView priceButton =
                 view.findViewById(
                         R.id.buttonPrice
                 );
-
 
         TextView distanceButton =
                 view.findViewById(
@@ -273,7 +151,7 @@ public class BrowseFragment extends Fragment {
 
 
         // -----------------------------------------------------
-        // OTHER BUTTONS
+        // NAVIGATION CONTROLS
         // -----------------------------------------------------
 
         View backButton =
@@ -282,16 +160,15 @@ public class BrowseFragment extends Fragment {
                 );
 
 
-        View drillDetailsButton =
-                view.findViewById(
-                        R.id.buttonViewDrill
-                );
+        // -----------------------------------------------------
+        // CREATE SERVICES
+        // -----------------------------------------------------
 
+        searchService =
+                new ItemSearchService();
 
-        View tentDetailsButton =
-                view.findViewById(
-                        R.id.buttonViewTent
-                );
+        itemRepository =
+                new ItemRepository();
 
 
         // =====================================================
@@ -311,111 +188,7 @@ public class BrowseFragment extends Fragment {
 
 
         // =====================================================
-        // DRILL DETAILS
-        // =====================================================
-
-        drillDetailsButton.setOnClickListener(v -> {
-
-            Intent intent =
-                    new Intent(
-                            requireContext(),
-                            ItemDetailsActivity.class
-                    );
-
-
-            intent.putExtra(
-                    "itemId",
-                    "ITEM1"
-            );
-
-
-            intent.putExtra(
-                    "name",
-                    "Cordless Drill"
-            );
-
-
-            intent.putExtra(
-                    "price",
-                    "$5 per day"
-            );
-
-
-            intent.putExtra(
-                    "info",
-                    formatDistance(
-                            drillDistanceKm
-                    )
-                            + " • ★ 4.8"
-            );
-
-
-            intent.putExtra(
-                    "description",
-                    "A reliable cordless drill suitable for small home projects."
-            );
-
-
-            startActivity(
-                    intent
-            );
-        });
-
-
-        // =====================================================
-        // TENT DETAILS
-        // =====================================================
-
-        tentDetailsButton.setOnClickListener(v -> {
-
-            Intent intent =
-                    new Intent(
-                            requireContext(),
-                            ItemDetailsActivity.class
-                    );
-
-
-            intent.putExtra(
-                    "itemId",
-                    "ITEM2"
-            );
-
-
-            intent.putExtra(
-                    "name",
-                    "Camping Tent"
-            );
-
-
-            intent.putExtra(
-                    "price",
-                    "$8 per day"
-            );
-
-
-            intent.putExtra(
-                    "info",
-                    formatDistance(
-                            tentDistanceKm
-                    )
-                            + " • ★ 4.6"
-            );
-
-
-            intent.putExtra(
-                    "description",
-                    "A spacious camping tent suitable for weekend trips."
-            );
-
-
-            startActivity(
-                    intent
-            );
-        });
-
-
-        // =====================================================
-        // SEARCH
+        // LIVE KEYWORD SEARCH
         // =====================================================
 
         searchField.addTextChangedListener(
@@ -429,6 +202,7 @@ public class BrowseFragment extends Fragment {
                             int count,
                             int after
                     ) {
+                        // Nothing needed
                     }
 
 
@@ -448,6 +222,7 @@ public class BrowseFragment extends Fragment {
                     public void afterTextChanged(
                             Editable s
                     ) {
+                        // Nothing needed
                     }
                 }
         );
@@ -457,36 +232,36 @@ public class BrowseFragment extends Fragment {
         // CATEGORY FILTER
         // =====================================================
 
-        categoryButton.setOnClickListener(v ->
+        categoryButton.setOnClickListener(v -> {
 
-                showCategoryDialog(
-                        categoryButton
-                )
-        );
+            showCategoryDialog(
+                    categoryButton
+            );
+        });
 
 
         // =====================================================
         // PRICE FILTER
         // =====================================================
 
-        priceButton.setOnClickListener(v ->
+        priceButton.setOnClickListener(v -> {
 
-                showPriceDialog(
-                        priceButton
-                )
-        );
+            showPriceDialog(
+                    priceButton
+            );
+        });
 
 
         // =====================================================
         // DISTANCE FILTER
         // =====================================================
 
-        distanceButton.setOnClickListener(v ->
+        distanceButton.setOnClickListener(v -> {
 
-                showDistanceDialog(
-                        distanceButton
-                )
-        );
+            showDistanceDialog(
+                    distanceButton
+            );
+        });
 
 
         // =====================================================
@@ -497,7 +272,6 @@ public class BrowseFragment extends Fragment {
                 (MainAppActivity)
                         requireActivity();
 
-
         boolean focusSearch =
                 mainActivity
                         .consumeBrowseSearchFocus();
@@ -506,7 +280,6 @@ public class BrowseFragment extends Fragment {
         if (focusSearch) {
 
             searchField.requestFocus();
-
 
             searchField.post(() -> {
 
@@ -517,13 +290,11 @@ public class BrowseFragment extends Fragment {
                                                 Context.INPUT_METHOD_SERVICE
                                         );
 
-
                 if (keyboard != null) {
 
                     keyboard.showSoftInput(
                             searchField,
-                            InputMethodManager
-                                    .SHOW_IMPLICIT
+                            InputMethodManager.SHOW_IMPLICIT
                     );
                 }
             });
@@ -531,30 +302,73 @@ public class BrowseFragment extends Fragment {
 
 
         // =====================================================
-        // INITIAL DISPLAY
+        // LOAD ITEMS FROM FIRESTORE
         // =====================================================
 
-        applyFilters();
-
-
-        // =====================================================
-        // REQUEST DEVICE LOCATION
-        // =====================================================
-
-        requestCurrentLocation();
+        loadItems();
     }
 
 
     // =========================================================
-    // APPLY SEARCH + FILTERS
+    // LOAD ITEMS FROM FIRESTORE
+    // =========================================================
+
+    private void loadItems() {
+
+        itemRepository.getAllItems(
+
+                new ItemRepository.OnItemsLoadedListener() {
+
+                    @Override
+                    public void onSuccess(
+                            QuerySnapshot querySnapshot
+                    ) {
+
+                        allItems.clear();
+
+                        allItems.addAll(
+                                querySnapshot.getDocuments()
+                        );
+
+                        applyFilters();
+                    }
+
+
+                    @Override
+                    public void onFailure(
+                            Exception e
+                    ) {
+
+                        if (!isAdded()) {
+                            return;
+                        }
+
+                        Toast.makeText(
+                                requireContext(),
+                                "Failed to load items",
+                                Toast.LENGTH_SHORT
+                        ).show();
+                    }
+                }
+        );
+    }
+
+
+    // =========================================================
+    // APPLY ALL FILTERS
     // =========================================================
 
     private void applyFilters() {
 
-        if (searchField == null
-                || searchService == null
-                || cardDrill == null
-                || cardTent == null) {
+        if (
+                searchField == null
+                        ||
+                        itemsContainer == null
+                        ||
+                        textItemCount == null
+                        ||
+                        searchService == null
+        ) {
 
             return;
         }
@@ -566,123 +380,335 @@ public class BrowseFragment extends Fragment {
                         .toString();
 
 
+        // Clear old cards
+        itemsContainer.removeAllViews();
+
+
+        int visibleCount = 0;
+
+
         // -----------------------------------------------------
-        // DRILL
+        // LOOP THROUGH FIRESTORE ITEMS
         // -----------------------------------------------------
 
-        boolean drillMatches =
+        for (DocumentSnapshot document : allItems) {
 
-                searchService.matchesKeyword(
-                        "Cordless Drill",
-                        query
-                )
+            String itemId =
+                    document.getString(
+                            "itemId"
+                    );
 
-                        &&
+            String itemName =
+                    document.getString(
+                            "itemName"
+                    );
 
-                        searchService.matchesCategory(
-                                "Tools",
-                                selectedCategory
-                        )
+            String description =
+                    document.getString(
+                            "description"
+                    );
 
-                        &&
+            String category =
+                    document.getString(
+                            "category"
+                    );
 
-                        searchService.matchesMaxPrice(
-                                5.0,
-                                selectedMaxPrice
-                        )
+            String location =
+                    document.getString(
+                            "location"
+                    );
 
-                        &&
+            Double price =
+                    document.getDouble(
+                            "price"
+                    );
 
-                        searchService.matchesMaxDistance(
-                                drillDistanceKm,
-                                selectedMaxDistanceKm
+
+            // -------------------------------------------------
+            // GET IMAGE URLS
+            // -------------------------------------------------
+
+            ArrayList<String> imageUrls =
+                    new ArrayList<>();
+
+            Object imageData =
+                    document.get(
+                            "imageUrls"
+                    );
+
+            if (imageData instanceof List<?>) {
+
+                for (Object imageUrl :
+                        (List<?>) imageData) {
+
+                    if (imageUrl instanceof String) {
+
+                        imageUrls.add(
+                                (String) imageUrl
                         );
+                    }
+                }
+            }
 
 
-        // -----------------------------------------------------
-        // TENT
-        // -----------------------------------------------------
+            // -------------------------------------------------
+            // CHECK DATA
+            // -------------------------------------------------
 
-        boolean tentMatches =
-
-                searchService.matchesKeyword(
-                        "Camping Tent",
-                        query
-                )
-
-                        &&
-
-                        searchService.matchesCategory(
-                                "Camping",
-                                selectedCategory
-                        )
-
-                        &&
-
-                        searchService.matchesMaxPrice(
-                                8.0,
-                                selectedMaxPrice
-                        )
-
-                        &&
-
-                        searchService.matchesMaxDistance(
-                                tentDistanceKm,
-                                selectedMaxDistanceKm
-                        );
+            if (itemName == null) {
+                continue;
+            }
 
 
-        // -----------------------------------------------------
-        // SHOW / HIDE CARDS
-        // -----------------------------------------------------
-
-        cardDrill.setVisibility(
-                drillMatches
-                        ? View.VISIBLE
-                        : View.GONE
-        );
+            if (price == null) {
+                price = 0.0;
+            }
 
 
-        cardTent.setVisibility(
-                tentMatches
-                        ? View.VISIBLE
-                        : View.GONE
-        );
+            // -------------------------------------------------
+            // KEYWORD FILTER
+            // -------------------------------------------------
+
+            boolean matchesKeyword =
+                    searchService.matchesKeyword(
+                            itemName,
+                            query
+                    );
 
 
-        // -----------------------------------------------------
-        // RESULT COUNT
-        // -----------------------------------------------------
+            // -------------------------------------------------
+            // CATEGORY FILTER
+            // -------------------------------------------------
 
-        int visibleCount =
-                0;
+            boolean matchesCategory =
+                    searchService.matchesCategory(
+                            category,
+                            selectedCategory
+                    );
 
 
-        if (drillMatches) {
+            // -------------------------------------------------
+            // PRICE FILTER
+            // -------------------------------------------------
 
-            visibleCount++;
+            boolean matchesPrice =
+                    searchService.matchesMaxPrice(
+                            price,
+                            selectedMaxPrice
+                    );
+
+
+            // -------------------------------------------------
+            // SHOW MATCHING ITEM
+            // -------------------------------------------------
+
+            if (
+                    matchesKeyword
+                            &&
+                            matchesCategory
+                            &&
+                            matchesPrice
+            ) {
+
+                addItemCard(
+                        itemId,
+                        itemName,
+                        description,
+                        category,
+                        price,
+                        location,
+                        imageUrls
+                );
+
+                visibleCount++;
+            }
         }
 
 
-        if (tentMatches) {
+        // -----------------------------------------------------
+        // UPDATE RESULT COUNT
+        // -----------------------------------------------------
 
-            visibleCount++;
+        textItemCount.setText(
+
+                visibleCount == 1
+
+                        ? "1 item"
+
+                        : visibleCount + " items"
+        );
+    }
+
+
+    // =========================================================
+    // DISPLAY ITEM CARD
+    // =========================================================
+
+    private void addItemCard(
+            String itemId,
+            String itemName,
+            String description,
+            String category,
+            double price,
+            String location,
+            ArrayList<String> imageUrls
+    ) {
+
+        View card =
+                getLayoutInflater().inflate(
+                        R.layout.item_card,
+                        itemsContainer,
+                        false
+                );
+
+
+        // -----------------------------------------------------
+        // FIND CARD VIEWS
+        // -----------------------------------------------------
+
+        TextView nameView =
+                card.findViewById(
+                        R.id.textItemName
+                );
+
+        TextView priceView =
+                card.findViewById(
+                        R.id.textItemPrice
+                );
+
+        TextView infoView =
+                card.findViewById(
+                        R.id.textItemInfo
+                );
+
+        ImageView itemImage =
+                card.findViewById(
+                        R.id.imageItem
+                );
+
+        View detailsButton =
+                card.findViewById(
+                        R.id.buttonViewDetails
+                );
+
+
+        // -----------------------------------------------------
+        // DISPLAY IMAGE
+        // -----------------------------------------------------
+
+        if (
+                imageUrls != null
+                        &&
+                        !imageUrls.isEmpty()
+        ) {
+
+            Glide.with(this)
+                    .load(
+                            imageUrls.get(0)
+                    )
+                    .fitCenter()
+                    .into(
+                            itemImage
+                    );
         }
 
 
-        if (resultCountText != null) {
+        // -----------------------------------------------------
+        // DISPLAY ITEM DATA
+        // -----------------------------------------------------
 
-            resultCountText.setText(
+        nameView.setText(
+                itemName
+        );
 
-                    visibleCount
-                            +
-                            (
-                                    visibleCount == 1
-                                            ? " item"
-                                            : " items"
-                            )
+
+        priceView.setText(
+                "$" + price + " / day"
+        );
+
+
+        if (location != null) {
+
+            infoView.setText(
+                    location
+            );
+
+        } else {
+
+            infoView.setText(
+                    ""
             );
         }
+
+
+        // =====================================================
+        // VIEW DETAILS
+        // =====================================================
+
+        detailsButton.setOnClickListener(v -> {
+
+            Intent intent =
+                    new Intent(
+                            requireContext(),
+                            ItemDetailsActivity.class
+                    );
+
+
+            intent.putExtra(
+                    "itemId",
+                    itemId
+            );
+
+
+            intent.putExtra(
+                    "name",
+                    itemName
+            );
+
+
+            intent.putExtra(
+                    "price",
+                    "$" + price + " per day"
+            );
+
+
+            intent.putExtra(
+                    "info",
+                    location
+            );
+
+
+            intent.putExtra(
+                    "description",
+                    description
+            );
+
+
+            // Pass all images to ItemDetailsActivity
+            if (imageUrls != null) {
+
+                intent.putStringArrayListExtra(
+                        "imageUrls",
+                        new ArrayList<>(
+                                imageUrls
+                        )
+                );
+            }
+
+
+            startActivity(
+                    intent
+            );
+        });
+
+
+        // -----------------------------------------------------
+        // ADD CARD TO BROWSE PAGE
+        // -----------------------------------------------------
+
+        itemsContainer.addView(
+                card
+        );
     }
 
 
@@ -698,7 +724,8 @@ public class BrowseFragment extends Fragment {
 
                 "All categories",
                 "Tools",
-                "Camping"
+                "Camping",
+                "Electronics"
         };
 
 
@@ -751,7 +778,7 @@ public class BrowseFragment extends Fragment {
             TextView priceButton
     ) {
 
-        String[] options = {
+        String[] priceOptions = {
 
                 "Any price",
                 "Up to $5/day",
@@ -769,7 +796,7 @@ public class BrowseFragment extends Fragment {
                 )
 
                 .setItems(
-                        options,
+                        priceOptions,
 
                         (dialog, which) -> {
 
@@ -827,7 +854,7 @@ public class BrowseFragment extends Fragment {
             TextView distanceButton
     ) {
 
-        String[] options = {
+        String[] distanceOptions = {
 
                 "Any distance",
                 "Within 1 km",
@@ -846,7 +873,7 @@ public class BrowseFragment extends Fragment {
                 )
 
                 .setItems(
-                        options,
+                        distanceOptions,
 
                         (dialog, which) -> {
 
@@ -897,304 +924,15 @@ public class BrowseFragment extends Fragment {
                             }
 
 
+                            /*
+                             * Distance is not applied yet because
+                             * Firestore items currently do not
+                             * contain latitude / longitude.
+                             */
                             applyFilters();
                         }
                 )
 
                 .show();
-    }
-
-
-    // =========================================================
-    // REQUEST LOCATION
-    // =========================================================
-
-    private void requestCurrentLocation() {
-
-        boolean fineGranted =
-
-                ContextCompat.checkSelfPermission(
-                        requireContext(),
-                        Manifest.permission
-                                .ACCESS_FINE_LOCATION
-                )
-
-                        ==
-
-                        PackageManager
-                                .PERMISSION_GRANTED;
-
-
-        boolean coarseGranted =
-
-                ContextCompat.checkSelfPermission(
-                        requireContext(),
-                        Manifest.permission
-                                .ACCESS_COARSE_LOCATION
-                )
-
-                        ==
-
-                        PackageManager
-                                .PERMISSION_GRANTED;
-
-
-        if (fineGranted
-                || coarseGranted) {
-
-            loadCurrentLocation();
-
-        } else {
-
-            locationPermissionLauncher.launch(
-
-                    new String[]{
-
-                            Manifest.permission
-                                    .ACCESS_FINE_LOCATION,
-
-                            Manifest.permission
-                                    .ACCESS_COARSE_LOCATION
-                    }
-            );
-        }
-    }
-
-
-    // =========================================================
-    // LOAD CURRENT DEVICE LOCATION
-    // =========================================================
-
-    private void loadCurrentLocation() {
-
-        if (!isAdded()) {
-
-            return;
-        }
-
-
-        boolean fineGranted =
-
-                ContextCompat.checkSelfPermission(
-                        requireContext(),
-                        Manifest.permission
-                                .ACCESS_FINE_LOCATION
-                )
-
-                        ==
-
-                        PackageManager
-                                .PERMISSION_GRANTED;
-
-
-        boolean coarseGranted =
-
-                ContextCompat.checkSelfPermission(
-                        requireContext(),
-                        Manifest.permission
-                                .ACCESS_COARSE_LOCATION
-                )
-
-                        ==
-
-                        PackageManager
-                                .PERMISSION_GRANTED;
-
-
-        if (!fineGranted
-                && !coarseGranted) {
-
-            return;
-        }
-
-
-        LocationManager manager =
-
-                (LocationManager)
-                        requireContext()
-                                .getSystemService(
-                                        Context.LOCATION_SERVICE
-                                );
-
-
-        if (manager == null) {
-
-            return;
-        }
-
-
-        Location location =
-                null;
-
-
-        try {
-
-            // -------------------------------------------------
-            // TRY GPS FIRST
-            // -------------------------------------------------
-
-            if (manager.isProviderEnabled(
-                    LocationManager.GPS_PROVIDER
-            )) {
-
-                location =
-                        manager.getLastKnownLocation(
-                                LocationManager.GPS_PROVIDER
-                        );
-            }
-
-
-            // -------------------------------------------------
-            // FALL BACK TO NETWORK LOCATION
-            // -------------------------------------------------
-
-            if (location == null
-                    &&
-                    manager.isProviderEnabled(
-                            LocationManager.NETWORK_PROVIDER
-                    )) {
-
-                location =
-                        manager.getLastKnownLocation(
-                                LocationManager
-                                        .NETWORK_PROVIDER
-                        );
-            }
-
-
-        } catch (SecurityException exception) {
-
-            return;
-        }
-
-
-        // =====================================================
-        // LOCATION FOUND
-        // =====================================================
-
-        if (location != null) {
-
-            userLatitude =
-                    location.getLatitude();
-
-
-            userLongitude =
-                    location.getLongitude();
-
-
-            calculateItemDistances();
-
-
-            applyFilters();
-
-
-        } else {
-
-            Toast.makeText(
-                    requireContext(),
-                    "Current location is not available yet.",
-                    Toast.LENGTH_SHORT
-            ).show();
-        }
-    }
-
-
-    // =========================================================
-    // CALCULATE LISTING DISTANCES
-    // =========================================================
-
-    private void calculateItemDistances() {
-
-        if (userLatitude == null
-                || userLongitude == null
-                || locationService == null) {
-
-            return;
-        }
-
-
-        // -----------------------------------------------------
-        // DRILL DISTANCE
-        // -----------------------------------------------------
-
-        drillDistanceKm =
-
-                locationService.calculateDistanceKm(
-                        userLatitude,
-                        userLongitude,
-                        DRILL_LATITUDE,
-                        DRILL_LONGITUDE
-                );
-
-
-        // -----------------------------------------------------
-        // TENT DISTANCE
-        // -----------------------------------------------------
-
-        tentDistanceKm =
-
-                locationService.calculateDistanceKm(
-                        userLatitude,
-                        userLongitude,
-                        TENT_LATITUDE,
-                        TENT_LONGITUDE
-                );
-
-
-        // -----------------------------------------------------
-        // UPDATE DRILL CARD
-        // -----------------------------------------------------
-
-        if (drillInfoText != null) {
-
-            drillInfoText.setText(
-
-                    "★ 4.8  ·  "
-                            +
-                            formatDistance(
-                                    drillDistanceKm
-                            )
-            );
-        }
-
-
-        // -----------------------------------------------------
-        // UPDATE TENT CARD
-        // -----------------------------------------------------
-
-        if (tentInfoText != null) {
-
-            tentInfoText.setText(
-
-                    "★ 4.6  ·  "
-                            +
-                            formatDistance(
-                                    tentDistanceKm
-                            )
-            );
-        }
-    }
-
-
-    // =========================================================
-    // FORMAT DISTANCE
-    // =========================================================
-
-    private String formatDistance(
-            double distanceKm
-    ) {
-
-        if (distanceKm
-                == Double.MAX_VALUE) {
-
-            return "Distance unavailable";
-        }
-
-
-        return String.format(
-                Locale.getDefault(),
-                "%.1f km away",
-                distanceKm
-        );
     }
 }
