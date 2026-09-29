@@ -181,4 +181,108 @@ public class BookingTest {
 
         assertEquals(false, booking.blocksAvailability());
     }
+
+    @Test
+    public void acceptedBooking_canBecomeActive() {
+
+        AvailabilitySlot slot =
+                new AvailabilitySlot(
+                        1000,
+                        5000
+                );
+
+        Booking booking =
+                new Booking(
+                        "B001",
+                        "USER1",
+                        "ITEM1",
+                        slot
+                );
+
+        booking.acceptBooking();
+        booking.startBooking();
+
+        assertEquals(
+                BookingStatus.ACTIVE,
+                booking.getStatus()
+        );
+    }
+
+    @Test
+    public void activeBooking_canBeCompleted() {
+
+        AvailabilitySlot slot =
+                new AvailabilitySlot(
+                        1000,
+                        5000
+                );
+
+        Booking booking =
+                new Booking(
+                        "B001",
+                        "USER1",
+                        "ITEM1",
+                        slot
+                );
+
+        booking.acceptBooking();
+        booking.startBooking();
+        booking.completeBooking();
+
+        assertEquals(
+                BookingStatus.COMPLETED,
+                booking.getStatus()
+        );
+    }
+
+    @Test
+    public void pendingBooking_cannotBecomeActiveDirectly() {
+
+        AvailabilitySlot slot =
+                new AvailabilitySlot(
+                        1000,
+                        5000
+                );
+
+        Booking booking =
+                new Booking(
+                        "B001",
+                        "USER1",
+                        "ITEM1",
+                        slot
+                );
+
+        booking.startBooking();
+
+        assertEquals(
+                BookingStatus.PENDING,
+                booking.getStatus()
+        );
+    }
+
+    @Test
+    public void acceptedBooking_cannotCompleteWithoutStarting() {
+
+        AvailabilitySlot slot =
+                new AvailabilitySlot(
+                        1000,
+                        5000
+                );
+
+        Booking booking =
+                new Booking(
+                        "B001",
+                        "USER1",
+                        "ITEM1",
+                        slot
+                );
+
+        booking.acceptBooking();
+        booking.completeBooking();
+
+        assertEquals(
+                BookingStatus.ACCEPTED,
+                booking.getStatus()
+        );
+    }
 }
