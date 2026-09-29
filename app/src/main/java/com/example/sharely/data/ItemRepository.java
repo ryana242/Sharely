@@ -5,6 +5,7 @@ import android.util.Log;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,10 +13,9 @@ public class ItemRepository {
 
     private final FirebaseFirestore db;
 
+
     public ItemRepository() {
-
         db = FirebaseFirestore.getInstance();
-
     }
 
 
@@ -43,20 +43,16 @@ public class ItemRepository {
 
     // ADD ITEM
     public void addItem(
+            String itemId,
             String ownerId,
             String itemName,
             String description,
             String category,
             double price,
-            String location
+            String location,
+            ArrayList<String> imageUrls
     ) {
 
-        // Generate a new document ID
-        String itemId = db.collection("items")
-                .document()
-                .getId();
-
-        // Create item data
         Map<String, Object> item = new HashMap<>();
 
         item.put("itemId", itemId);
@@ -66,19 +62,30 @@ public class ItemRepository {
         item.put("category", category);
         item.put("price", price);
         item.put("location", location);
-        // Save to Firestore
+
+        // Store image URLs
+        item.put("imageUrls", imageUrls);
+
+
         db.collection("items")
                 .document(itemId)
                 .set(item)
+
                 .addOnSuccessListener(unused -> {
 
-                    Log.d("Firestore", "Item added: " + itemId);
-
+                    Log.d(
+                            "Firestore",
+                            "Item added: " + itemId
+                    );
                 })
+
                 .addOnFailureListener(e -> {
 
-                    Log.e("Firestore", "Failed to add item", e);
-
+                    Log.e(
+                            "Firestore",
+                            "Failed to add item",
+                            e
+                    );
                 });
     }
 
@@ -117,28 +124,10 @@ public class ItemRepository {
 
                 });
     }
+    public String generateItemId() {
 
-    public void getItemsByCategory(
-            String category,
-            OnItemsLoadedListener listener
-    ) {
-
-        db.collection("items")
-                .whereEqualTo("category", category)
-                .get()
-                .addOnSuccessListener(listener::onSuccess)
-                .addOnFailureListener(listener::onFailure);
-    }
-
-    public void getItemsByMaxPrice(
-            double maxPrice,
-            OnItemsLoadedListener listener
-    ) {
-
-        db.collection("items")
-                .whereLessThanOrEqualTo("price", maxPrice)
-                .get()
-                .addOnSuccessListener(listener::onSuccess)
-                .addOnFailureListener(listener::onFailure);
+        return db.collection("items")
+                .document()
+                .getId();
     }
 }
