@@ -26,6 +26,10 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.widget.ImageView;
+
+import com.bumptech.glide.Glide;
+
 public class BrowseActivity extends AppCompatActivity {
 
     // ---------------------------------------------------------
@@ -339,6 +343,9 @@ public class BrowseActivity extends AppCompatActivity {
             Double price =
                     document.getDouble("price");
 
+            ArrayList<String> imageUrls =
+
+                    (ArrayList<String>) document.get("imageUrls");
 
             if (itemName == null) {
                 continue;
@@ -387,7 +394,8 @@ public class BrowseActivity extends AppCompatActivity {
                         description,
                         category,
                         price,
-                        location
+                        location,
+                        imageUrls
                 );
 
                 visibleCount++;
@@ -409,7 +417,8 @@ public class BrowseActivity extends AppCompatActivity {
             String description,
             String category,
             double price,
-            String location
+            String location,
+            ArrayList<String> imageUrls
     ) {
 
         View card =
@@ -440,11 +449,20 @@ public class BrowseActivity extends AppCompatActivity {
                         R.id.buttonViewDetails
                 );
 
+        ImageView itemImage = card.findViewById(
+                R.id.imageItem);
 
         // ---------------------------------------------------------
         // DISPLAY DATA
         // ---------------------------------------------------------
 
+        if (imageUrls != null && !imageUrls.isEmpty()) {
+
+            Glide.with(this)
+                    .load(imageUrls.get(0))
+                    .fitCenter()
+                    .into(itemImage);
+        }
         nameView.setText(
                 itemName
         );
@@ -506,8 +524,13 @@ public class BrowseActivity extends AppCompatActivity {
                     "description",
                     description
             );
+            if (imageUrls != null) {
 
-
+                intent.putStringArrayListExtra(
+                        "imageUrls",
+                        new ArrayList<>(imageUrls)
+                );
+            }
             startActivity(intent);
         });
 

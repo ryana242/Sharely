@@ -53,11 +53,18 @@
 
         <!-- Item image -->
 
-        <View
+        <HorizontalScrollView
+            android:id="@+id/photoScroll"
             android:layout_width="match_parent"
             android:layout_height="240dp"
             android:layout_marginTop="18dp"
-            android:background="@drawable/item_image_placeholder" />
+            android:scrollbars="none">
+            <LinearLayout
+                android:id="@+id/photoContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
 
 
         <!-- Item heading -->

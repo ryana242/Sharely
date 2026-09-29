@@ -9,10 +9,12 @@
     android:orientation="vertical"
     android:padding="14dp">
 
-    <View
+    <ImageView
+        android:id="@+id/imageItem"
         android:layout_width="match_parent"
         android:layout_height="170dp"
-        android:background="@drawable/item_image_placeholder" />
+        android:background="@drawable/item_image_placeholder"
+        android:scaleType="fitCenter" />
 
 
     <LinearLayout

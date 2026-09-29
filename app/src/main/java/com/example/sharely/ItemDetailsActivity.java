@@ -25,6 +25,11 @@ import java.util.Calendar;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+
+import com.bumptech.glide.Glide;
+
 public class ItemDetailsActivity extends AppCompatActivity {
 
     private Calendar startCalendar;
@@ -48,14 +53,56 @@ public class ItemDetailsActivity extends AppCompatActivity {
         TextView itemInfo = findViewById(R.id.textItemInfo);
         TextView itemDescription = findViewById(R.id.textItemDescription);
 
+        LinearLayout photoContainer =
+                findViewById(R.id.photoContainer);
+
         Intent intent = getIntent();
 
         String itemId = intent.getStringExtra("itemId");
+
+        ArrayList<String> imageUrls =
+                intent.getStringArrayListExtra("imageUrls");
 
         itemName.setText(intent.getStringExtra("name"));
         itemPrice.setText(intent.getStringExtra("price"));
         itemInfo.setText(intent.getStringExtra("info"));
         itemDescription.setText(intent.getStringExtra("description"));
+
+
+        if (imageUrls != null && !imageUrls.isEmpty()) {
+
+            for (String imageUrl : imageUrls) {
+
+                ImageView imageView =
+                        new ImageView(this);
+
+                LinearLayout.LayoutParams params =
+                        new LinearLayout.LayoutParams(
+                                dpToPx(380),
+                                LinearLayout.LayoutParams.MATCH_PARENT
+                        );
+
+                params.setMargins(
+                        0,
+                        0,
+                        dpToPx(12),
+                        0
+                );
+
+                imageView.setLayoutParams(params);
+
+                imageView.setScaleType(
+                        ImageView.ScaleType.FIT_CENTER
+                );
+
+                Glide.with(this)
+                        .load(imageUrl)
+                        .fitCenter()
+                        .into(imageView);
+
+                photoContainer.addView(imageView);
+            }
+        }
         Button backButton = findViewById(R.id.buttonBack);
 
         backButton.setOnClickListener(v -> {
@@ -300,5 +347,12 @@ public class ItemDetailsActivity extends AppCompatActivity {
 
             datePicker.show();
         });
+    }
+    private int dpToPx(int dp) {
+        return (int) (
+                dp * getResources()
+                        .getDisplayMetrics()
+                        .density
+        );
     }
 }
