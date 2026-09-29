@@ -46,4 +46,93 @@ public class AvailabilitySlotTest {
 
         assertFalse(first.overlaps(second));
     }
+
+    @Test
+    public void contains_requestInsideAvailability_returnsTrue() {
+
+        AvailabilitySlot available =
+                new AvailabilitySlot(
+                        1000,
+                        5000
+                );
+
+        AvailabilitySlot requested =
+                new AvailabilitySlot(
+                        2000,
+                        4000
+                );
+
+
+        assertTrue(
+                available.contains(
+                        requested
+                )
+        );
+    }
+
+
+    @Test
+    public void contains_requestExactlyMatchesAvailability_returnsTrue() {
+
+        AvailabilitySlot available =
+                new AvailabilitySlot(
+                        1000,
+                        5000
+                );
+
+        AvailabilitySlot requested =
+                new AvailabilitySlot(
+                        1000,
+                        5000
+                );
+
+
+        assertTrue(
+                available.contains(
+                        requested
+                )
+        );
+    }
+
+
+    @Test
+    public void contains_requestExtendsPastAvailability_returnsFalse() {
+
+        AvailabilitySlot available =
+                new AvailabilitySlot(
+                        1000,
+                        5000
+                );
+
+        AvailabilitySlot requested =
+                new AvailabilitySlot(
+                        4000,
+                        6000
+                );
+
+
+        assertFalse(
+                available.contains(
+                        requested
+                )
+        );
+    }
+
+
+    @Test
+    public void contains_nullSlot_returnsFalse() {
+
+        AvailabilitySlot available =
+                new AvailabilitySlot(
+                        1000,
+                        5000
+                );
+
+
+        assertFalse(
+                available.contains(
+                        null
+                )
+        );
+    }
 }
