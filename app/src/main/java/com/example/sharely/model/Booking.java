@@ -61,6 +61,20 @@ public class Booking {
         return status;
     }
 
+    public String getBookingId() {
+        return bookingId;
+    }
+
+
+    public String getBorrowerId() {
+        return borrowerId;
+    }
+
+
+    public String getItemId() {
+        return itemId;
+    }
+
     public boolean hasValidTimeSlot() {
         return bookingSlot != null && bookingSlot.isValid();
     }

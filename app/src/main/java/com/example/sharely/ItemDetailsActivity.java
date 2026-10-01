@@ -21,6 +21,9 @@ import com.example.sharely.model.AvailabilitySlot;
 import com.example.sharely.model.Booking;
 import com.example.sharely.service.BookingService;
 
+import com.example.sharely.data.BookingRepository;
+import com.example.sharely.data.UserRepository;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -33,6 +36,8 @@ public class ItemDetailsActivity extends AppCompatActivity {
 
     private boolean startSelected = false;
     private boolean endSelected = false;
+    private BookingRepository bookingRepository;
+    private UserRepository userRepository;
 
 
     @Override
@@ -46,6 +51,12 @@ public class ItemDetailsActivity extends AppCompatActivity {
                 R.layout.activity_item_details
         );
 
+        // =====================================================
+        //INITIAL REPOSITORY
+        // =====================================================
+        bookingRepository = new BookingRepository();
+
+        userRepository = new UserRepository();
 
         // =====================================================
         // SYSTEM BAR SPACING
@@ -547,32 +558,36 @@ public class ItemDetailsActivity extends AppCompatActivity {
 
 
             // -------------------------------------------------
+            // GET CURRENT USER ID
+            // -------------------------------------------------
+
+            String borrowerId = userRepository.getCurrentUserId();
+            if (borrowerId == null) {
+                Toast.makeText(
+                        ItemDetailsActivity.this,
+                        "Please log in before requesting a booking",
+                        Toast.LENGTH_SHORT
+                ).show();
+                return;
+            }
+
+            // -------------------------------------------------
+            // GENERATE BOOKING ID
+            // -------------------------------------------------
+
+            String bookingId = bookingRepository.generateBookingId();
+
+            // -------------------------------------------------
             // CREATE PENDING BOOKING
             // -------------------------------------------------
 
             Booking newBooking =
                     new Booking(
-
-                            "B002",
-
-                            "CURRENT_USER",
-
+                            bookingId,
+                            borrowerId,
                             itemId,
-
                             requestedSlot
                     );
-
-
-            // =================================================
-            // TEMPORARY OWNER AVAILABILITY
-            // =================================================
-            //
-            // For now we simulate that this item is available
-            // from the current moment for the next 30 days.
-            //
-            // Leo will later replace this with availability
-            // loaded from Firestore.
-            // =================================================
 
             List<AvailabilitySlot> ownerAvailability =
                     createDemoAvailability();
@@ -614,18 +629,32 @@ public class ItemDetailsActivity extends AppCompatActivity {
 
             if (canRequest) {
 
-                /*
-                 * We DO NOT call acceptBooking() here.
-                 *
-                 * The booking remains PENDING.
-                 * The owner will accept or reject it later.
-                 */
+                bookingRepository.addBooking(
+                        newBooking,
 
-                Toast.makeText(
-                        ItemDetailsActivity.this,
-                        "Booking request sent",
-                        Toast.LENGTH_SHORT
-                ).show();
+                        new BookingRepository.OnBookingSavedListener() {
+
+                            @Override
+                            public void onSuccess() {
+
+                                Toast.makeText(
+                                        ItemDetailsActivity.this,
+                                        "Booking request sent",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+                            }
+
+                            @Override
+                            public void onFailure(Exception e) {
+
+                                Toast.makeText(
+                                        ItemDetailsActivity.this,
+                                        "Failed to send booking request",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+                            }
+                        }
+                );
 
             } else {
 
@@ -691,7 +720,6 @@ public class ItemDetailsActivity extends AppCompatActivity {
 
         return availability;
     }
-
 
     // =========================================================
     // DP TO PX

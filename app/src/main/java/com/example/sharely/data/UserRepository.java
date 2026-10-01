@@ -1,33 +1,46 @@
 package com.example.sharely.data;
-import android.util.Log;
 import com.google.firebase.firestore.FirebaseFirestore;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 public class UserRepository {
 
     private final FirebaseFirestore db;
+    private final FirebaseAuth auth;
 
     public UserRepository() {
 
         db = FirebaseFirestore.getInstance();
+        auth = FirebaseAuth.getInstance();
+    }
+
+    // =========================================================
+    // GET CURRENT USER ID
+    // =========================================================
+
+    public String getCurrentUserId() {
+
+        FirebaseUser currentUser =
+
+                auth.getCurrentUser();
+
+        if (currentUser == null) {
+
+            return null;
+
+        }
+
+        return currentUser.getUid();
 
     }
 
-    public void getUser(String userId) {
+    // =========================================================
+    // CHECK LOGIN
+    // =========================================================
 
-        db.collection("users")
+    public boolean isLoggedIn() {
 
-                .document(userId)
-
-                .get()
-
-                .addOnSuccessListener(document -> {
-
-                    if (document.exists()) {
-
-                        String name = document.getString("name");
-                        Log.d("Firestore", "User name: " + name);
-                    }
-
-                });
+        return auth.getCurrentUser() != null;
 
     }
 
