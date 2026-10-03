@@ -6,22 +6,32 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.content.Intent;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
-import com.example.sharely.model.AvailabilitySlot;
+import com.example.sharely.data.ItemRepository;
 import com.example.sharely.model.Booking;
 import com.example.sharely.service.BookingActivityService;
+import com.example.sharely.enums.ItemStatus;
+import com.example.sharely.model.Item;
 
-import java.util.ArrayList;
+
+import com.example.sharely.data.BookingRepository;
+import com.example.sharely.data.UserRepository;
+import com.example.sharely.data.ItemRepository;
+
 import java.util.List;
 
 public class ActivityFragment extends Fragment {
 
     private BookingActivityService bookingActivityService;
+    private BookingRepository bookingRepository;
+    private UserRepository userRepository;
+    private ItemRepository itemRepository;
 
     public ActivityFragment() {
     }
@@ -107,74 +117,245 @@ public class ActivityFragment extends Fragment {
                 view.findViewById(
                         R.id.textHistorySummary
                 );
+        // -----------------------------------------------------
+        // LISTING SUMMARY VIEWS
+        // -----------------------------------------------------
 
+        TextView activeListingsSummary =
+                view.findViewById(
+                        R.id.textActiveListingsSummary
+                );
+        TextView pastListingsSummary =
+                view.findViewById(
+                        R.id.textPastListingsSummary
+                );
 
         // -----------------------------------------------------
         // SERVICE
         // -----------------------------------------------------
 
-        bookingActivityService =
-                new BookingActivityService();
+        bookingActivityService = new BookingActivityService();
 
+        bookingRepository = new BookingRepository();
 
-        // -----------------------------------------------------
-        // TEMPORARY BOOKINGS
-        // Later Leo will replace these with Firestore bookings.
-        // -----------------------------------------------------
+        userRepository = new UserRepository();
 
-        List<Booking> bookings =
-                createDemoBookings();
-
-
-        List<Booking> ongoingBookings =
-                bookingActivityService
-                        .getOngoingBookings(
-                                bookings
-                        );
-
-        List<Booking> upcomingBookings =
-                bookingActivityService
-                        .getUpcomingBookings(
-                                bookings
-                        );
-
-        List<Booking> historyBookings =
-                bookingActivityService
-                        .getHistoryBookings(
-                                bookings
-                        );
-
+        itemRepository = new ItemRepository();
 
         // -----------------------------------------------------
-        // DISPLAY COUNTS
+        // GET CURRENT USER ID
         // -----------------------------------------------------
 
-        ongoingSummary.setText(
-                ongoingBookings.size()
-                        + " ongoing borrowing"
-                        + (ongoingBookings.size() == 1 ? "" : "s")
-        );
-
-        ongoingDetail.setText(
-                "Active bookings currently in progress."
-        );
+        String currentUserId =
+                userRepository.getCurrentUserId();
 
 
-        upcomingSummary.setText(
-                upcomingBookings.size()
-                        + " upcoming or pending"
-        );
+        if (currentUserId == null) {
 
-        upcomingDetail.setText(
-                "Pending requests and accepted future bookings."
-        );
+            ongoingSummary.setText(
+                    "0 ongoing borrowings"
+            );
+
+            upcomingSummary.setText(
+                    "0 upcoming or pending"
+            );
+
+            historySummary.setText(
+                    "0 completed, cancelled or rejected bookings"
+            );
+            activeListingsSummary.setText(
+                    "No active listings"
+            );
+            pastListingsSummary.setText(
+                    "No unavailable or past listings"
+            );
+
+        } else {
 
 
-        historySummary.setText(
-                historyBookings.size()
-                        + " completed, cancelled or rejected booking"
-                        + (historyBookings.size() == 1 ? "" : "s")
-        );
+            // -------------------------------------------------
+            // LOAD CURRENT USER BOOKINGS
+            // -------------------------------------------------
+
+            bookingRepository.getBookingsByBorrower(
+                    currentUserId,
+                    new BookingRepository.OnBookingsLoadedListener() {
+
+                        @Override
+                        public void onSuccess(
+                                List<Booking> bookings
+                        ) {
+
+
+                            // -----------------------------------------
+                            // CLASSIFY BOOKINGS
+                            // -----------------------------------------
+
+                            List<Booking> ongoingBookings =
+                                    bookingActivityService
+                                            .getOngoingBookings(
+                                                    bookings
+                                            );
+
+
+                            List<Booking> upcomingBookings =
+                                    bookingActivityService
+                                            .getUpcomingBookings(
+                                                    bookings
+                                            );
+
+
+                            List<Booking> historyBookings =
+                                    bookingActivityService
+                                            .getHistoryBookings(
+                                                    bookings
+                                            );
+
+
+                            // -----------------------------------------
+                            // DISPLAY COUNTS
+                            // -----------------------------------------
+
+                            ongoingSummary.setText(
+                                    ongoingBookings.size()
+                                            + " ongoing borrowing"
+                                            + (
+                                            ongoingBookings.size() == 1
+                                                    ? ""
+                                                    : "s"
+                                    )
+                            );
+
+
+                            upcomingSummary.setText(
+                                    upcomingBookings.size()
+                                            + " upcoming or pending"
+                            );
+
+
+                            historySummary.setText(
+                                    historyBookings.size()
+                                            + " completed, cancelled or rejected booking"
+                                            + (
+                                            historyBookings.size() == 1
+                                                    ? ""
+                                                    : "s"
+                                    )
+                            );
+                        }
+
+
+                        @Override
+                        public void onFailure(Exception e) {
+
+                            ongoingSummary.setText(
+                                    "Failed to load bookings"
+                            );
+
+                            upcomingSummary.setText(
+                                    "Failed to load bookings"
+                            );
+
+                            historySummary.setText(
+                                    "Failed to load bookings"
+                            );
+                        }
+                    }
+            );
+
+            // -------------------------------------------------
+            // LOAD CURRENT USER LISTINGS
+            // -------------------------------------------------
+
+            itemRepository.getItemsByOwner(
+                    currentUserId,
+                    new ItemRepository.OnOwnerItemsLoadedListener() {
+
+                        @Override
+                        public void onSuccess(
+                                List<Item> items
+                        ) {
+                            int activeCount = 0;
+                            int unavailableAndPastCount = 0;
+
+                            // -----------------------------------------
+                            // CLASSIFY ITEMS
+                            // -----------------------------------------
+
+                            for (Item item : items) {
+                                if (
+                                        item.getStatus()
+                                                == ItemStatus.ACTIVE
+                                ) {
+                                    activeCount++;
+                                } else if (
+                                        item.getStatus()
+                                                == ItemStatus.UNAVAILABLE
+                                                ||
+                                                item.getStatus()
+                                                        == ItemStatus.PAST
+                                ) {
+
+                                    unavailableAndPastCount++;
+                                }
+                            }
+
+                            // -----------------------------------------
+                            // DISPLAY ACTIVE LISTINGS
+                            // -----------------------------------------
+
+                            if (activeCount == 0) {
+
+                                activeListingsSummary.setText(
+                                        "No active listings"
+                                );
+                            } else {
+                                activeListingsSummary.setText(
+                                        activeCount
+                                                + " active listing"
+                                                + (
+                                                activeCount == 1
+                                                        ? ""
+                                                        : "s"
+                                        )
+                                );
+                            }
+
+                            // -----------------------------------------
+                            // DISPLAY UNAVAILABLE / PAST LISTINGS
+                            // -----------------------------------------
+
+                            if (unavailableAndPastCount == 0) {
+                                pastListingsSummary.setText(
+                                        "No unavailable or past listings"
+                                );
+                            } else {
+                                pastListingsSummary.setText(
+                                        unavailableAndPastCount
+                                                + " unavailable or past listing"
+                                                + (
+                                                unavailableAndPastCount == 1
+                                                        ? ""
+                                                        : "s"
+                                        )
+                                );
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(
+                                Exception e
+                        ) {
+                            activeListingsSummary.setText(
+                                    "Failed to load listings"
+                            );
+                            pastListingsSummary.setText(
+                                    "Failed to load listings"
+                            );
+                        }
+                    }
+            );
+        }
 
 
         // -----------------------------------------------------
@@ -213,78 +394,119 @@ public class ActivityFragment extends Fragment {
                     listingsContent
             );
         });
-    }
+        // -----------------------------------------------------
+        // BOOKING LIST LISTENERS
+        // -----------------------------------------------------
 
+        ongoingSummary.setOnClickListener(v -> {
 
-    // =========================================================
-    // TEMPORARY DATA
-    // =========================================================
+            Intent intent =
+                    new Intent(
+                            requireContext(),
+                            BookingListActivity.class
+                    );
 
-    private List<Booking> createDemoBookings() {
+            intent.putExtra(
+                    "type",
+                    "ONGOING"
+            );
 
-        List<Booking> bookings =
-                new ArrayList<>();
+            startActivity(
+                    intent
+            );
+        });
 
+        upcomingSummary.setOnClickListener(v -> {
 
-        // ACTIVE BOOKING
-        Booking activeBooking =
-                new Booking(
-                        "B001",
-                        "USER1",
-                        "ITEM1",
-                        new AvailabilitySlot(
-                                1000,
-                                5000
-                        )
-                );
+            Intent intent =
+                    new Intent(
+                            requireContext(),
+                            BookingListActivity.class
+                    );
 
-        activeBooking.acceptBooking();
-        activeBooking.startBooking();
+            intent.putExtra(
+                    "type",
+                    "UPCOMING"
+            );
 
-        bookings.add(
-                activeBooking
-        );
+            startActivity(
+                    intent
+            );
+        });
 
+        historySummary.setOnClickListener(v -> {
 
-        // PENDING BOOKING
-        Booking pendingBooking =
-                new Booking(
-                        "B002",
-                        "USER1",
-                        "ITEM2",
-                        new AvailabilitySlot(
-                                6000,
-                                9000
-                        )
-                );
+            Intent intent =
+                    new Intent(
+                            requireContext(),
+                            BookingListActivity.class
+                    );
 
-        bookings.add(
-                pendingBooking
-        );
+            intent.putExtra(
+                    "type",
+                    "HISTORY"
+            );
 
+            startActivity(
+                    intent
+            );
+        });
 
-        // COMPLETED BOOKING
-        Booking completedBooking =
-                new Booking(
-                        "B003",
-                        "USER1",
-                        "ITEM3",
-                        new AvailabilitySlot(
-                                10000,
-                                15000
-                        )
-                );
+        activeListingsSummary.setOnClickListener(v -> {
 
-        completedBooking.acceptBooking();
-        completedBooking.startBooking();
-        completedBooking.completeBooking();
+            Intent intent =
 
-        bookings.add(
-                completedBooking
-        );
+                    new Intent(
 
+                            requireContext(),
 
-        return bookings;
+                            ListingListActivity.class
+
+                    );
+
+            intent.putExtra(
+
+                    "type",
+
+                    "ACTIVE"
+
+            );
+
+            startActivity(
+
+                    intent
+
+            );
+
+        });
+
+        pastListingsSummary.setOnClickListener(v -> {
+
+            Intent intent =
+
+                    new Intent(
+
+                            requireContext(),
+
+                            ListingListActivity.class
+
+                    );
+
+            intent.putExtra(
+
+                    "type",
+
+                    "PAST"
+
+            );
+
+            startActivity(
+
+                    intent
+
+            );
+
+        });
     }
 
 

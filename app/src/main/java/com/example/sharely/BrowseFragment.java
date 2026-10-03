@@ -20,11 +20,12 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
+import com.example.sharely.enums.ItemStatus;
+import com.example.sharely.model.Item;
+
 import com.bumptech.glide.Glide;
 import com.example.sharely.data.ItemRepository;
 import com.example.sharely.service.ItemSearchService;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,9 +61,7 @@ public class BrowseFragment extends Fragment {
     // FIRESTORE DATA
     // =========================================================
 
-    private final List<DocumentSnapshot> allItems =
-            new ArrayList<>();
-
+    private final List<Item> allItems = new ArrayList<>();
     private ItemRepository itemRepository;
 
 
@@ -321,13 +320,13 @@ public class BrowseFragment extends Fragment {
 
                     @Override
                     public void onSuccess(
-                            QuerySnapshot querySnapshot
+                            List<Item> items
                     ) {
 
                         allItems.clear();
 
                         allItems.addAll(
-                                querySnapshot.getDocuments()
+                                items
                         );
 
                         applyFilters();
@@ -391,64 +390,25 @@ public class BrowseFragment extends Fragment {
         // LOOP THROUGH FIRESTORE ITEMS
         // -----------------------------------------------------
 
-        for (DocumentSnapshot document : allItems) {
-
-            String itemId =
-                    document.getString(
-                            "itemId"
-                    );
-
-            String itemName =
-                    document.getString(
-                            "itemName"
-                    );
-
-            String description =
-                    document.getString(
-                            "description"
-                    );
-
-            String category =
-                    document.getString(
-                            "category"
-                    );
-
-            String location =
-                    document.getString(
-                            "location"
-                    );
-
-            Double price =
-                    document.getDouble(
-                            "price"
-                    );
-
-
+        for (Item item : allItems) {
             // -------------------------------------------------
-            // GET IMAGE URLS
+            // ONLY SHOW ACTIVE ITEMS
             // -------------------------------------------------
-
-            ArrayList<String> imageUrls =
-                    new ArrayList<>();
-
-            Object imageData =
-                    document.get(
-                            "imageUrls"
-                    );
-
-            if (imageData instanceof List<?>) {
-
-                for (Object imageUrl :
-                        (List<?>) imageData) {
-
-                    if (imageUrl instanceof String) {
-
-                        imageUrls.add(
-                                (String) imageUrl
-                        );
-                    }
-                }
+            if (item.getStatus()
+                    != ItemStatus.ACTIVE) {
+                continue;
             }
+
+            // -------------------------------------------------
+            // GET ITEM DATA
+            // -------------------------------------------------
+            String itemId = item.getItemId();
+            String itemName = item.getItemName();
+            String description = item.getDescription();
+            String category = item.getCategory();
+            String location = item.getLocation();
+            double price = item.getPrice();
+            ArrayList<String> imageUrls = item.getImageUrls();
 
 
             // -------------------------------------------------
@@ -458,12 +418,6 @@ public class BrowseFragment extends Fragment {
             if (itemName == null) {
                 continue;
             }
-
-
-            if (price == null) {
-                price = 0.0;
-            }
-
 
             // -------------------------------------------------
             // KEYWORD FILTER

@@ -5,96 +5,107 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import androidx.fragment.app.Fragment;
 
+import com.example.sharely.enums.ItemStatus;
+import com.example.sharely.model.Item;
+
+import com.bumptech.glide.Glide;
 import com.example.sharely.data.ItemRepository;
 import com.example.sharely.service.ItemSearchService;
-import com.google.firebase.firestore.DocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import android.widget.ImageView;
 
-import com.bumptech.glide.Glide;
+public class BrowseActivity extends Fragment {
 
-public class BrowseActivity extends AppCompatActivity {
-
-    // ---------------------------------------------------------
+    // =========================================================
     // UI FIELDS
-    // ---------------------------------------------------------
+    // =========================================================
 
     private EditText searchField;
+
     private LinearLayout itemsContainer;
 
     private TextView textItemCount;
 
 
-    // ---------------------------------------------------------
+    // =========================================================
     // SEARCH / FILTER LOGIC
-    // ---------------------------------------------------------
+    // =========================================================
 
     private ItemSearchService searchService;
 
-    // null means that particular filter is not active
     private String selectedCategory = null;
 
     private Double selectedMaxPrice = null;
 
     private Double selectedMaxDistanceKm = null;
 
-    private final List<DocumentSnapshot> allItems = new ArrayList<>();
-
-    private ItemRepository itemRepository;
 
     // =========================================================
-    // ON CREATE
+    // FIRESTORE DATA
+    // =========================================================
+
+    private final List<Item> allItems = new ArrayList<>();
+    private ItemRepository itemRepository;
+
+
+    // =========================================================
+    // CONSTRUCTOR
+    // =========================================================
+
+    public BrowseActivity() {
+        // Required empty constructor
+    }
+
+
+    // =========================================================
+    // CREATE VIEW
     // =========================================================
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public View onCreateView(
+            @NonNull LayoutInflater inflater,
+            ViewGroup container,
+            Bundle savedInstanceState
+    ) {
 
-        super.onCreate(savedInstanceState);
+        return inflater.inflate(
+                R.layout.fragment_browse,
+                container,
+                false
+        );
+    }
 
-        EdgeToEdge.enable(this);
 
-        setContentView(R.layout.activity_browse);
+    // =========================================================
+    // VIEW CREATED
+    // =========================================================
 
+    @Override
+    public void onViewCreated(
+            @NonNull View view,
+            @Nullable Bundle savedInstanceState
+    ) {
 
-        // -----------------------------------------------------
-        // HANDLE SYSTEM BARS
-        // -----------------------------------------------------
-
-        ViewCompat.setOnApplyWindowInsetsListener(
-                findViewById(R.id.browseMain),
-                (v, insets) -> {
-
-                    Insets systemBars =
-                            insets.getInsets(
-                                    WindowInsetsCompat.Type.systemBars()
-                            );
-
-                    v.setPadding(
-                            systemBars.left,
-                            systemBars.top,
-                            systemBars.right,
-                            systemBars.bottom
-                    );
-
-                    return insets;
-                }
+        super.onViewCreated(
+                view,
+                savedInstanceState
         );
 
 
@@ -102,11 +113,20 @@ public class BrowseActivity extends AppCompatActivity {
         // FIND MAIN VIEWS
         // -----------------------------------------------------
 
-        searchField = findViewById(R.id.editSearch);
+        searchField =
+                view.findViewById(
+                        R.id.editSearch
+                );
 
-        itemsContainer = findViewById(R.id.itemsContainer);
+        itemsContainer =
+                view.findViewById(
+                        R.id.itemsContainer
+                );
 
-        textItemCount = findViewById(R.id.textItemCount);
+        textItemCount =
+                view.findViewById(
+                        R.id.textItemCount
+                );
 
 
         // -----------------------------------------------------
@@ -114,13 +134,19 @@ public class BrowseActivity extends AppCompatActivity {
         // -----------------------------------------------------
 
         TextView categoryButton =
-                findViewById(R.id.buttonCategory);
+                view.findViewById(
+                        R.id.buttonCategory
+                );
 
         TextView priceButton =
-                findViewById(R.id.buttonPrice);
+                view.findViewById(
+                        R.id.buttonPrice
+                );
 
         TextView distanceButton =
-                findViewById(R.id.buttonFilter);
+                view.findViewById(
+                        R.id.buttonFilter
+                );
 
 
         // -----------------------------------------------------
@@ -128,35 +154,44 @@ public class BrowseActivity extends AppCompatActivity {
         // -----------------------------------------------------
 
         View backButton =
-                findViewById(R.id.buttonBack);
+                view.findViewById(
+                        R.id.buttonBack
+                );
 
 
         // -----------------------------------------------------
-        // CREATE SEARCH SERVICE
+        // CREATE SERVICES
         // -----------------------------------------------------
 
         searchService =
                 new ItemSearchService();
 
-        // -----------------------------------------------------
-        // INITIAL itemRepository
-        // -----------------------------------------------------
-        itemRepository = new ItemRepository();
+        itemRepository =
+                new ItemRepository();
 
-        // -----------------------------------------------------
+
+        // =====================================================
         // BACK BUTTON
-        // -----------------------------------------------------
+        // =====================================================
 
         backButton.setOnClickListener(v -> {
-            finish();
+
+            MainAppActivity activity =
+                    (MainAppActivity)
+                            requireActivity();
+
+            activity.selectTab(
+                    R.id.navHome
+            );
         });
 
 
-        // -----------------------------------------------------
+        // =====================================================
         // LIVE KEYWORD SEARCH
-        // -----------------------------------------------------
+        // =====================================================
 
         searchField.addTextChangedListener(
+
                 new TextWatcher() {
 
                     @Override
@@ -192,9 +227,9 @@ public class BrowseActivity extends AppCompatActivity {
         );
 
 
-        // -----------------------------------------------------
+        // =====================================================
         // CATEGORY FILTER
-        // -----------------------------------------------------
+        // =====================================================
 
         categoryButton.setOnClickListener(v -> {
 
@@ -204,9 +239,9 @@ public class BrowseActivity extends AppCompatActivity {
         });
 
 
-        // -----------------------------------------------------
+        // =====================================================
         // PRICE FILTER
-        // -----------------------------------------------------
+        // =====================================================
 
         priceButton.setOnClickListener(v -> {
 
@@ -216,9 +251,9 @@ public class BrowseActivity extends AppCompatActivity {
         });
 
 
-        // -----------------------------------------------------
+        // =====================================================
         // DISTANCE FILTER
-        // -----------------------------------------------------
+        // =====================================================
 
         distanceButton.setOnClickListener(v -> {
 
@@ -228,15 +263,18 @@ public class BrowseActivity extends AppCompatActivity {
         });
 
 
-        // -----------------------------------------------------
-        // HOME SEARCH → FOCUS SEARCH FIELD
-        // -----------------------------------------------------
+        // =====================================================
+        // CHECK IF HOME REQUESTED SEARCH FOCUS
+        // =====================================================
+
+        MainAppActivity mainActivity =
+                (MainAppActivity)
+                        requireActivity();
 
         boolean focusSearch =
-                getIntent().getBooleanExtra(
-                        "focusSearch",
-                        false
-                );
+                mainActivity
+                        .consumeBrowseSearchFocus();
+
 
         if (focusSearch) {
 
@@ -246,43 +284,49 @@ public class BrowseActivity extends AppCompatActivity {
 
                 InputMethodManager keyboard =
                         (InputMethodManager)
-                                getSystemService(
-                                        Context.INPUT_METHOD_SERVICE
-                                );
+                                requireContext()
+                                        .getSystemService(
+                                                Context.INPUT_METHOD_SERVICE
+                                        );
 
-                keyboard.showSoftInput(
-                        searchField,
-                        InputMethodManager.SHOW_IMPLICIT
-                );
+                if (keyboard != null) {
+
+                    keyboard.showSoftInput(
+                            searchField,
+                            InputMethodManager.SHOW_IMPLICIT
+                    );
+                }
             });
         }
 
 
-        // -----------------------------------------------------
-        // INITIAL FILTER STATE
-        // -----------------------------------------------------
+        // =====================================================
+        // LOAD ITEMS FROM FIRESTORE
+        // =====================================================
 
         loadItems();
     }
 
+
     // =========================================================
-    // LOAD PAGE INFORMATION
+    // LOAD ITEMS FROM FIRESTORE
     // =========================================================
 
     private void loadItems() {
 
         itemRepository.getAllItems(
+
                 new ItemRepository.OnItemsLoadedListener() {
 
                     @Override
                     public void onSuccess(
-                            com.google.firebase.firestore.QuerySnapshot querySnapshot
+                            List<Item> items
                     ) {
 
                         allItems.clear();
 
                         allItems.addAll(
-                                querySnapshot.getDocuments()
+                                items
                         );
 
                         applyFilters();
@@ -294,8 +338,12 @@ public class BrowseActivity extends AppCompatActivity {
                             Exception e
                     ) {
 
+                        if (!isAdded()) {
+                            return;
+                        }
+
                         Toast.makeText(
-                                BrowseActivity.this,
+                                requireContext(),
                                 "Failed to load items",
                                 Toast.LENGTH_SHORT
                         ).show();
@@ -304,11 +352,26 @@ public class BrowseActivity extends AppCompatActivity {
         );
     }
 
+
     // =========================================================
     // APPLY ALL FILTERS
     // =========================================================
 
     private void applyFilters() {
+
+        if (
+                searchField == null
+                        ||
+                        itemsContainer == null
+                        ||
+                        textItemCount == null
+                        ||
+                        searchService == null
+        ) {
+
+            return;
+        }
+
 
         String query =
                 searchField
@@ -323,40 +386,43 @@ public class BrowseActivity extends AppCompatActivity {
         int visibleCount = 0;
 
 
-        for (DocumentSnapshot document : allItems) {
+        // -----------------------------------------------------
+        // LOOP THROUGH FIRESTORE ITEMS
+        // -----------------------------------------------------
 
-            String itemId =
-                    document.getString("itemId");
+        for (Item item : allItems) {
+            // -------------------------------------------------
+            // ONLY SHOW ACTIVE ITEMS
+            // -------------------------------------------------
+            if (item.getStatus()
+                    != ItemStatus.ACTIVE) {
+                continue;
+            }
 
-            String itemName =
-                    document.getString("itemName");
+            // -------------------------------------------------
+            // GET ITEM DATA
+            // -------------------------------------------------
+            String itemId = item.getItemId();
+            String itemName = item.getItemName();
+            String description = item.getDescription();
+            String category = item.getCategory();
+            String location = item.getLocation();
+            double price = item.getPrice();
+            ArrayList<String> imageUrls = item.getImageUrls();
 
-            String description =
-                    document.getString("description");
 
-            String category =
-                    document.getString("category");
-
-            String location =
-                    document.getString("location");
-
-            Double price =
-                    document.getDouble("price");
-
-            ArrayList<String> imageUrls =
-
-                    (ArrayList<String>) document.get("imageUrls");
+            // -------------------------------------------------
+            // CHECK DATA
+            // -------------------------------------------------
 
             if (itemName == null) {
                 continue;
             }
 
-            if (price == null) {
-                price = 0.0;
-            }
+            // -------------------------------------------------
+            // KEYWORD FILTER
+            // -------------------------------------------------
 
-
-            // Keyword filter
             boolean matchesKeyword =
                     searchService.matchesKeyword(
                             itemName,
@@ -364,7 +430,10 @@ public class BrowseActivity extends AppCompatActivity {
                     );
 
 
-            // Category filter
+            // -------------------------------------------------
+            // CATEGORY FILTER
+            // -------------------------------------------------
+
             boolean matchesCategory =
                     searchService.matchesCategory(
                             category,
@@ -372,13 +441,20 @@ public class BrowseActivity extends AppCompatActivity {
                     );
 
 
-            // Price filter
+            // -------------------------------------------------
+            // PRICE FILTER
+            // -------------------------------------------------
+
             boolean matchesPrice =
                     searchService.matchesMaxPrice(
                             price,
                             selectedMaxPrice
                     );
 
+
+            // -------------------------------------------------
+            // SHOW MATCHING ITEM
+            // -------------------------------------------------
 
             if (
                     matchesKeyword
@@ -403,14 +479,25 @@ public class BrowseActivity extends AppCompatActivity {
         }
 
 
+        // -----------------------------------------------------
+        // UPDATE RESULT COUNT
+        // -----------------------------------------------------
+
         textItemCount.setText(
+
                 visibleCount == 1
+
                         ? "1 item"
+
                         : visibleCount + " items"
         );
     }
 
-    //DISPLAY CARD
+
+    // =========================================================
+    // DISPLAY ITEM CARD
+    // =========================================================
+
     private void addItemCard(
             String itemId,
             String itemName,
@@ -429,6 +516,10 @@ public class BrowseActivity extends AppCompatActivity {
                 );
 
 
+        // -----------------------------------------------------
+        // FIND CARD VIEWS
+        // -----------------------------------------------------
+
         TextView nameView =
                 card.findViewById(
                         R.id.textItemName
@@ -444,25 +535,42 @@ public class BrowseActivity extends AppCompatActivity {
                         R.id.textItemInfo
                 );
 
+        ImageView itemImage =
+                card.findViewById(
+                        R.id.imageItem
+                );
+
         View detailsButton =
                 card.findViewById(
                         R.id.buttonViewDetails
                 );
 
-        ImageView itemImage = card.findViewById(
-                R.id.imageItem);
 
-        // ---------------------------------------------------------
-        // DISPLAY DATA
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
+        // DISPLAY IMAGE
+        // -----------------------------------------------------
 
-        if (imageUrls != null && !imageUrls.isEmpty()) {
+        if (
+                imageUrls != null
+                        &&
+                        !imageUrls.isEmpty()
+        ) {
 
             Glide.with(this)
-                    .load(imageUrls.get(0))
+                    .load(
+                            imageUrls.get(0)
+                    )
                     .fitCenter()
-                    .into(itemImage);
+                    .into(
+                            itemImage
+                    );
         }
+
+
+        // -----------------------------------------------------
+        // DISPLAY ITEM DATA
+        // -----------------------------------------------------
+
         nameView.setText(
                 itemName
         );
@@ -487,15 +595,15 @@ public class BrowseActivity extends AppCompatActivity {
         }
 
 
-        // ---------------------------------------------------------
+        // =====================================================
         // VIEW DETAILS
-        // ---------------------------------------------------------
+        // =====================================================
 
         detailsButton.setOnClickListener(v -> {
 
             Intent intent =
                     new Intent(
-                            BrowseActivity.this,
+                            requireContext(),
                             ItemDetailsActivity.class
                     );
 
@@ -505,41 +613,58 @@ public class BrowseActivity extends AppCompatActivity {
                     itemId
             );
 
+
             intent.putExtra(
                     "name",
                     itemName
             );
+
 
             intent.putExtra(
                     "price",
                     "$" + price + " per day"
             );
 
+
             intent.putExtra(
                     "info",
                     location
             );
 
+
             intent.putExtra(
                     "description",
                     description
             );
+
+
+            // Pass all images to ItemDetailsActivity
             if (imageUrls != null) {
 
                 intent.putStringArrayListExtra(
                         "imageUrls",
-                        new ArrayList<>(imageUrls)
+                        new ArrayList<>(
+                                imageUrls
+                        )
                 );
             }
-            startActivity(intent);
+
+
+            startActivity(
+                    intent
+            );
         });
 
 
-        // Add card to Browse page
+        // -----------------------------------------------------
+        // ADD CARD TO BROWSE PAGE
+        // -----------------------------------------------------
+
         itemsContainer.addView(
                 card
         );
     }
+
 
     // =========================================================
     // CATEGORY FILTER DIALOG
@@ -550,6 +675,7 @@ public class BrowseActivity extends AppCompatActivity {
     ) {
 
         String[] categories = {
+
                 "All categories",
                 "Tools",
                 "Camping",
@@ -557,7 +683,9 @@ public class BrowseActivity extends AppCompatActivity {
         };
 
 
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(
+                requireContext()
+        )
 
                 .setTitle(
                         "Choose category"
@@ -565,11 +693,13 @@ public class BrowseActivity extends AppCompatActivity {
 
                 .setItems(
                         categories,
+
                         (dialog, which) -> {
 
                             if (which == 0) {
 
-                                selectedCategory = null;
+                                selectedCategory =
+                                        null;
 
                                 categoryButton.setText(
                                         "Category"
@@ -603,6 +733,7 @@ public class BrowseActivity extends AppCompatActivity {
     ) {
 
         String[] priceOptions = {
+
                 "Any price",
                 "Up to $5/day",
                 "Up to $10/day",
@@ -610,7 +741,9 @@ public class BrowseActivity extends AppCompatActivity {
         };
 
 
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(
+                requireContext()
+        )
 
                 .setTitle(
                         "Maximum price"
@@ -618,11 +751,13 @@ public class BrowseActivity extends AppCompatActivity {
 
                 .setItems(
                         priceOptions,
+
                         (dialog, which) -> {
 
                             if (which == 0) {
 
-                                selectedMaxPrice = null;
+                                selectedMaxPrice =
+                                        null;
 
                                 priceButton.setText(
                                         "Price"
@@ -630,7 +765,8 @@ public class BrowseActivity extends AppCompatActivity {
 
                             } else if (which == 1) {
 
-                                selectedMaxPrice = 5.0;
+                                selectedMaxPrice =
+                                        5.0;
 
                                 priceButton.setText(
                                         "≤ $5"
@@ -638,7 +774,8 @@ public class BrowseActivity extends AppCompatActivity {
 
                             } else if (which == 2) {
 
-                                selectedMaxPrice = 10.0;
+                                selectedMaxPrice =
+                                        10.0;
 
                                 priceButton.setText(
                                         "≤ $10"
@@ -646,7 +783,8 @@ public class BrowseActivity extends AppCompatActivity {
 
                             } else {
 
-                                selectedMaxPrice = 20.0;
+                                selectedMaxPrice =
+                                        20.0;
 
                                 priceButton.setText(
                                         "≤ $20"
@@ -671,6 +809,7 @@ public class BrowseActivity extends AppCompatActivity {
     ) {
 
         String[] distanceOptions = {
+
                 "Any distance",
                 "Within 1 km",
                 "Within 2 km",
@@ -679,7 +818,9 @@ public class BrowseActivity extends AppCompatActivity {
         };
 
 
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(
+                requireContext()
+        )
 
                 .setTitle(
                         "Maximum distance"
@@ -687,11 +828,13 @@ public class BrowseActivity extends AppCompatActivity {
 
                 .setItems(
                         distanceOptions,
+
                         (dialog, which) -> {
 
                             if (which == 0) {
 
-                                selectedMaxDistanceKm = null;
+                                selectedMaxDistanceKm =
+                                        null;
 
                                 distanceButton.setText(
                                         "Distance"
@@ -699,7 +842,8 @@ public class BrowseActivity extends AppCompatActivity {
 
                             } else if (which == 1) {
 
-                                selectedMaxDistanceKm = 1.0;
+                                selectedMaxDistanceKm =
+                                        1.0;
 
                                 distanceButton.setText(
                                         "≤ 1 km"
@@ -707,7 +851,8 @@ public class BrowseActivity extends AppCompatActivity {
 
                             } else if (which == 2) {
 
-                                selectedMaxDistanceKm = 2.0;
+                                selectedMaxDistanceKm =
+                                        2.0;
 
                                 distanceButton.setText(
                                         "≤ 2 km"
@@ -715,7 +860,8 @@ public class BrowseActivity extends AppCompatActivity {
 
                             } else if (which == 3) {
 
-                                selectedMaxDistanceKm = 3.0;
+                                selectedMaxDistanceKm =
+                                        3.0;
 
                                 distanceButton.setText(
                                         "≤ 3 km"
@@ -723,7 +869,8 @@ public class BrowseActivity extends AppCompatActivity {
 
                             } else {
 
-                                selectedMaxDistanceKm = 5.0;
+                                selectedMaxDistanceKm =
+                                        5.0;
 
                                 distanceButton.setText(
                                         "≤ 5 km"
@@ -731,6 +878,11 @@ public class BrowseActivity extends AppCompatActivity {
                             }
 
 
+                            /*
+                             * Distance is not applied yet because
+                             * Firestore items currently do not
+                             * contain latitude / longitude.
+                             */
                             applyFilters();
                         }
                 )

@@ -45,6 +45,14 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity
+            android:name=".BookingListActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ListingListActivity"
+            android:exported="false" />
+
 
         <!-- Authentication -->
 

@@ -30,6 +30,8 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.example.sharely.model.Item;
+
 public class AddItemActivity extends AppCompatActivity {
     private EditText itemName;
     private EditText description;
@@ -256,15 +258,20 @@ public class AddItemActivity extends AppCompatActivity {
         // No images
         if (selectedImages.isEmpty()) {
 
+            Item item =
+                    new Item(
+                            itemId,
+                            ownerId,
+                            itemName,
+                            description,
+                            category,
+                            price,
+                            location,
+                            imageUrls
+                    );
+
             itemRepository.addItem(
-                    itemId,
-                    ownerId,
-                    itemName,
-                    description,
-                    category,
-                    price,
-                    location,
-                    imageUrls
+                    item
             );
 
             Toast.makeText(
@@ -334,15 +341,20 @@ public class AddItemActivity extends AppCompatActivity {
                         // All images uploaded
                         if (completedCount[0] == selectedImages.size()) {
 
+                            Item item =
+                                    new Item(
+                                            itemId,
+                                            ownerId,
+                                            itemName,
+                                            description,
+                                            category,
+                                            price,
+                                            location,
+                                            imageUrls
+                                    );
+
                             itemRepository.addItem(
-                                    itemId,
-                                    ownerId,
-                                    itemName,
-                                    description,
-                                    category,
-                                    price,
-                                    location,
-                                    imageUrls
+                                    item
                             );
 
 
