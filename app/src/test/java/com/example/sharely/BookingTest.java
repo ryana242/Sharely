@@ -2,6 +2,8 @@ package com.example.sharely;
 
 import static org.junit.Assert.assertEquals;
 
+import static org.junit.Assert.assertFalse;
+
 import com.example.sharely.enums.BookingStatus;
 import com.example.sharely.model.AvailabilitySlot;
 import com.example.sharely.model.Booking;
@@ -284,5 +286,84 @@ public class BookingTest {
                 BookingStatus.ACCEPTED,
                 booking.getStatus()
         );
+    }
+
+    @Test
+    public void nullOtherBooking_hasNoConflict() {
+
+        Booking booking = new Booking(
+                "B001", "USER1", "ITEM1",
+                new AvailabilitySlot(1000, 5000)
+        );
+
+        assertFalse(booking.conflictsWith(null));
+    }
+
+
+    @Test
+    public void nullItemId_hasNoConflict() {
+
+        Booking first = new Booking(
+                "B001", "USER1", null,
+                new AvailabilitySlot(1000, 5000)
+        );
+
+        Booking second = new Booking(
+                "B002", "USER2", "ITEM1",
+                new AvailabilitySlot(2000, 4000)
+        );
+
+        assertFalse(first.conflictsWith(second));
+    }
+
+
+    @Test
+    public void emptyItemId_hasNoConflict() {
+
+        Booking first = new Booking(
+                "B001", "USER1", "ITEM1",
+                new AvailabilitySlot(1000, 5000)
+        );
+
+        Booking second = new Booking(
+                "B002", "USER2", "",
+                new AvailabilitySlot(2000, 4000)
+        );
+
+        assertFalse(first.conflictsWith(second));
+    }
+
+
+    @Test
+    public void nullBookingSlot_hasNoConflict() {
+
+        Booking first = new Booking(
+                "B001", "USER1", "ITEM1",
+                null
+        );
+
+        Booking second = new Booking(
+                "B002", "USER2", "ITEM1",
+                new AvailabilitySlot(2000, 4000)
+        );
+
+        assertFalse(first.conflictsWith(second));
+    }
+
+
+    @Test
+    public void invalidBookingSlot_hasNoConflict() {
+
+        Booking first = new Booking(
+                "B001", "USER1", "ITEM1",
+                new AvailabilitySlot(5000, 1000)
+        );
+
+        Booking second = new Booking(
+                "B002", "USER2", "ITEM1",
+                new AvailabilitySlot(2000, 4000)
+        );
+
+        assertFalse(first.conflictsWith(second));
     }
 }
