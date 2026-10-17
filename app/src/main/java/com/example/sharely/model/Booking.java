@@ -80,8 +80,24 @@ public class Booking {
     }
 
     public boolean conflictsWith(Booking other) {
+
+        if (other == null) {
+            return false;
+        }
+
+        if (itemId == null || itemId.trim().isEmpty()
+                || other.itemId == null || other.itemId.trim().isEmpty()) {
+            return false;
+        }
+
+        if (!hasValidTimeSlot() || !other.hasValidTimeSlot()) {
+            return false;
+        }
+
         boolean sameItem = itemId.equals(other.itemId);
-        boolean overlappingTime = bookingSlot.overlaps(other.bookingSlot);
+
+        boolean overlappingTime =
+                bookingSlot.overlaps(other.bookingSlot);
 
         return sameItem && overlappingTime;
     }
