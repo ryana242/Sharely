@@ -394,4 +394,130 @@ public class BookingServiceTest {
                 )
         );
     }
+
+    @Test
+    public void cancelledBooking_cannotBeAccepted() {
+
+        Booking booking = new Booking(
+                "B001", "USER1", "ITEM1",
+                new AvailabilitySlot(1000, 5000)
+        );
+
+        booking.cancelBooking();
+
+        BookingService service = new BookingService();
+
+        assertFalse(
+                service.acceptBooking(booking, new ArrayList<>())
+        );
+
+        assertEquals(
+                BookingStatus.CANCELLED,
+                booking.getStatus()
+        );
+    }
+
+
+    @Test
+    public void rejectedBooking_cannotBeAccepted() {
+
+        Booking booking = new Booking(
+                "B001", "USER1", "ITEM1",
+                new AvailabilitySlot(1000, 5000)
+        );
+
+        booking.rejectBooking();
+
+        BookingService service = new BookingService();
+
+        assertFalse(
+                service.acceptBooking(booking, new ArrayList<>())
+        );
+
+        assertEquals(
+                BookingStatus.REJECTED,
+                booking.getStatus()
+        );
+    }
+
+
+    @Test
+    public void completedBooking_cannotBeAcceptedAgain() {
+
+        Booking booking = new Booking(
+                "B001", "USER1", "ITEM1",
+                new AvailabilitySlot(1000, 5000)
+        );
+
+        booking.acceptBooking();
+        booking.startBooking();
+        booking.completeBooking();
+
+        BookingService service = new BookingService();
+
+        assertFalse(
+                service.acceptBooking(booking, new ArrayList<>())
+        );
+
+        assertEquals(
+                BookingStatus.COMPLETED,
+                booking.getStatus()
+        );
+    }
+
+
+    @Test
+    public void nullBooking_cannotBeAccepted() {
+
+        BookingService service = new BookingService();
+
+        assertFalse(
+                service.acceptBooking(null, new ArrayList<>())
+        );
+    }
+
+
+    @Test
+    public void nullExistingBookings_cannotBeAccepted() {
+
+        Booking booking = new Booking(
+                "B001", "USER1", "ITEM1",
+                new AvailabilitySlot(1000, 5000)
+        );
+
+        BookingService service = new BookingService();
+
+        assertFalse(
+                service.acceptBooking(booking, null)
+        );
+
+        assertEquals(
+                BookingStatus.PENDING,
+                booking.getStatus()
+        );
+    }
+
+
+    @Test
+    public void nullBookingInList_doesNotCrash() {
+
+        Booking booking = new Booking(
+                "B001", "USER1", "ITEM1",
+                new AvailabilitySlot(1000, 5000)
+        );
+
+        List<Booking> existingBookings = new ArrayList<>();
+        existingBookings.add(null);
+
+        BookingService service = new BookingService();
+
+        assertTrue(
+                service.acceptBooking(booking, existingBookings)
+        );
+
+        assertEquals(
+                BookingStatus.ACCEPTED,
+                booking.getStatus()
+        );
+    }
 }
