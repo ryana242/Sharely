@@ -14,6 +14,7 @@ public class Item {
     private double price;
     private String location;
     private ArrayList<String> imageUrls;
+    private AvailabilitySlot availability;
 
     private ItemStatus status;
 
@@ -130,4 +131,21 @@ public class Item {
         status = ItemStatus.PAST;
 
     }
+
+
+    public AvailabilitySlot getAvailability() {
+        return availability;
+    }
+
+    public void setAvailability(AvailabilitySlot availability) {
+
+        if (availability == null || !availability.isValid()) {
+            throw new IllegalArgumentException(
+                    "Item availability must be a valid time period"
+            );
+        }
+
+        this.availability = availability;
+    }
+
 }

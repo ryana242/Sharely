@@ -32,6 +32,16 @@ import android.widget.TextView;
 
 import com.example.sharely.model.Item;
 
+import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
+
+import com.example.sharely.model.AvailabilitySlot;
+
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
+import java.text.SimpleDateFormat;
+
 public class AddItemActivity extends AppCompatActivity {
     private EditText itemName;
     private EditText description;
@@ -47,12 +57,16 @@ public class AddItemActivity extends AppCompatActivity {
     private FirebaseStorage firebaseStorage;
     private Button publishButton;
 
+    private AvailabilitySlot selectedAvailability;
+    private TextView availabilitySummary;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_add_item);
+
 
         ViewCompat.setOnApplyWindowInsetsListener(
                 findViewById(R.id.addItemMain),
@@ -71,6 +85,19 @@ public class AddItemActivity extends AppCompatActivity {
                     return insets;
                 }
         );
+
+// Availability selector
+        availabilitySummary =
+                findViewById(R.id.textAvailabilitySummary);
+
+        Button setAvailabilityButton =
+                findViewById(R.id.buttonSetAvailability);
+
+        setAvailabilityButton.setOnClickListener(
+                v -> selectAvailability()
+        );
+        availabilitySummary.setError(null);
+
 
         // Firebase
         firebaseAuth = FirebaseAuth.getInstance();
@@ -104,6 +131,129 @@ public class AddItemActivity extends AppCompatActivity {
         });
     }
 
+
+    private interface OnDateTimeSelected {
+        void onSelected(long timestamp);
+    }
+
+    private void pickDateTime(OnDateTimeSelected callback) {
+
+        Calendar selectedDateTime = Calendar.getInstance();
+
+        DatePickerDialog datePicker = new DatePickerDialog(
+                this,
+                (view, year, month, dayOfMonth) -> {
+
+                    selectedDateTime.set(
+                            year, month, dayOfMonth
+                    );
+
+                    TimePickerDialog timePicker =
+                            new TimePickerDialog(
+                                    this,
+                                    (timeView, hour, minute) -> {
+
+                                        selectedDateTime.set(
+                                                Calendar.HOUR_OF_DAY, hour
+                                        );
+
+                                        selectedDateTime.set(
+                                                Calendar.MINUTE, minute
+                                        );
+
+                                        selectedDateTime.set(
+                                                Calendar.SECOND, 0
+                                        );
+
+                                        selectedDateTime.set(
+                                                Calendar.MILLISECOND, 0
+                                        );
+
+                                        callback.onSelected(
+                                                selectedDateTime.getTimeInMillis()
+                                        );
+                                    },
+                                    selectedDateTime.get(Calendar.HOUR_OF_DAY),
+                                    selectedDateTime.get(Calendar.MINUTE),
+                                    true
+                            );
+
+                    timePicker.show();
+                },
+                selectedDateTime.get(Calendar.YEAR),
+                selectedDateTime.get(Calendar.MONTH),
+                selectedDateTime.get(Calendar.DAY_OF_MONTH)
+        );
+
+        datePicker.show();
+    }
+
+    private void selectAvailability() {
+
+        Toast.makeText(
+                this,
+                "Select availability start",
+                Toast.LENGTH_SHORT
+        ).show();
+
+        pickDateTime(startTime -> {
+
+            if (startTime <= System.currentTimeMillis()) {
+
+                Toast.makeText(
+                        this,
+                        "Start time must be in the future",
+                        Toast.LENGTH_SHORT
+                ).show();
+
+                return;
+            }
+
+            Toast.makeText(
+                    this,
+                    "Select availability end",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            pickDateTime(endTime -> {
+
+                AvailabilitySlot slot =
+                        new AvailabilitySlot(startTime, endTime);
+
+                if (!slot.isValid()) {
+
+                    Toast.makeText(
+                            this,
+                            "End time must be after start time",
+                            Toast.LENGTH_SHORT
+                    ).show();
+
+                    return;
+                }
+
+                selectedAvailability = slot;
+
+                SimpleDateFormat formatter =
+                        new SimpleDateFormat(
+                                "dd MMM yyyy, h:mm a",
+                                Locale.getDefault()
+                        );
+
+                String startText = formatter.format(
+                        new Date(startTime)
+                );
+
+                String endText = formatter.format(
+                        new Date(endTime)
+                );
+
+                availabilitySummary.setText(
+                        "Available from: " + startText
+                                + "\nUntil: " + endText
+                );
+            });
+        });
+    }
     // Open album
     private final ActivityResultLauncher<String> imagePicker =
             registerForActivityResult(
@@ -206,6 +356,25 @@ public class AddItemActivity extends AppCompatActivity {
             }
         }
 
+        // Require valid availability before publishing
+        if (selectedAvailability == null
+                || !selectedAvailability.isValid()
+                || selectedAvailability.getStartTime()
+                <= System.currentTimeMillis()) {
+
+            availabilitySummary.setError(
+                    "Please select valid future availability"
+            );
+
+            Toast.makeText(
+                    this,
+                    "Please set valid future availability",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            isValid = false;
+        }
+
         if (!isValid) {
             return;
         }
@@ -269,6 +438,8 @@ public class AddItemActivity extends AppCompatActivity {
                             location,
                             imageUrls
                     );
+
+            item.setAvailability(selectedAvailability);
 
             itemRepository.addItem(
                     item
@@ -352,6 +523,8 @@ public class AddItemActivity extends AppCompatActivity {
                                             location,
                                             imageUrls
                                     );
+
+                            item.setAvailability(selectedAvailability);
 
                             itemRepository.addItem(
                                     item
