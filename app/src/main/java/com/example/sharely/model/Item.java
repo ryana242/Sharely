@@ -1,3 +1,4 @@
+
 package com.example.sharely.model;
 
 import java.util.ArrayList;
@@ -14,11 +15,12 @@ public class Item {
     private double price;
     private String location;
     private ArrayList<String> imageUrls;
-    private AvailabilitySlot availability;
 
+    private AvailabilitySlot availability;
     private ItemStatus status;
 
 
+    // Constructor for new listings
     public Item(
             String itemId,
             String ownerId,
@@ -38,14 +40,12 @@ public class Item {
         this.price = price;
         this.location = location;
         this.imageUrls = imageUrls;
-        // New items are active by default
+
         this.status = ItemStatus.ACTIVE;
     }
 
-    // =========================================================
-    // CONSTRUCTOR FOR ITEM LOADED FROM FIRESTORE
-    // =========================================================
 
+    // Constructor for items loaded from Firestore
     public Item(
             String itemId,
             String ownerId,
@@ -70,69 +70,45 @@ public class Item {
     }
 
 
+    // Getters
     public String getItemId() {
         return itemId;
     }
-
 
     public String getOwnerId() {
         return ownerId;
     }
 
-
     public String getItemName() {
         return itemName;
     }
-
 
     public String getDescription() {
         return description;
     }
 
-
     public String getCategory() {
         return category;
     }
-
 
     public double getPrice() {
         return price;
     }
 
-
     public String getLocation() {
         return location;
     }
 
-
     public ArrayList<String> getImageUrls() {
         return imageUrls;
     }
+
     public ItemStatus getStatus() {
-
         return status;
-
-    }
-
-    public void setUnavailable() {
-
-        status = ItemStatus.UNAVAILABLE;
-
-    }
-
-    public void setActive() {
-
-        status = ItemStatus.ACTIVE;
-
-    }
-
-    public void setPast() {
-
-        status = ItemStatus.PAST;
-
     }
 
 
+    // Availability
     public AvailabilitySlot getAvailability() {
         return availability;
     }
@@ -148,4 +124,36 @@ public class Item {
         this.availability = availability;
     }
 
+
+    // Temporarily make a listing unavailable
+    public void setUnavailable() {
+
+        if (status == ItemStatus.PAST) {
+            throw new IllegalStateException(
+                    "A taken-down item cannot be made unavailable"
+            );
+        }
+
+        status = ItemStatus.UNAVAILABLE;
+    }
+
+
+    // Activate or reactivate a listing
+    public void setActive() {
+
+        if (status == ItemStatus.PAST) {
+            throw new IllegalStateException(
+                    "A taken-down item cannot be reactivated"
+            );
+        }
+
+        status = ItemStatus.ACTIVE;
+    }
+
+
+    // Permanently take down a listing
+    public void setPast() {
+
+        status = ItemStatus.PAST;
+    }
 }
