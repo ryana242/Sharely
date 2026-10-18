@@ -1,20 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/white"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:focusable="true"
+    android:focusableInTouchMode="true">
 
     <LinearLayout
+        android:id="@+id/profileContent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:paddingLeft="24dp"
         android:paddingTop="28dp"
         android:paddingRight="24dp"
-        android:paddingBottom="32dp">
-
+        android:paddingBottom="32dp"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:descendantFocusability="beforeDescendants">
 
         <!-- Heading -->
 
@@ -34,7 +40,6 @@
             android:textColor="@color/sharely_text_secondary"
             android:textSize="15sp" />
 
-
         <!-- Profile card -->
 
         <LinearLayout
@@ -47,6 +52,7 @@
             android:padding="20dp">
 
             <TextView
+                android:id="@+id/textProfileAvatar"
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:background="@drawable/welcome_logo"
@@ -85,7 +91,6 @@
 
         </LinearLayout>
 
-
         <!-- Reputation -->
 
         <TextView
@@ -104,6 +109,8 @@
             android:background="@drawable/card_surface"
             android:orientation="horizontal"
             android:padding="20dp">
+
+            <!-- Borrower rating -->
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -129,6 +136,8 @@
                     android:textSize="13sp" />
 
             </LinearLayout>
+
+            <!-- Owner rating -->
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -156,7 +165,6 @@
             </LinearLayout>
 
         </LinearLayout>
-
 
         <!-- Account -->
 
@@ -188,13 +196,40 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="Name, ratings and profile information will be loaded from Firestore."
+                android:layout_marginTop="12dp"
+                android:text="Display name"
                 android:textColor="@color/sharely_text_secondary"
                 android:textSize="14sp" />
 
-        </LinearLayout>
+            <EditText
+                android:id="@+id/editProfileName"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/search_field"
+                android:hint="Enter your name"
+                android:inputType="textPersonName"
+                android:imeOptions="actionDone"
+                android:singleLine="true"
+                android:maxLength="40"
+                android:paddingHorizontal="14dp"
+                android:textColor="@color/sharely_text_primary"
+                android:textColorHint="@color/sharely_text_secondary" />
 
+            <TextView
+                android:id="@+id/buttonSaveProfileName"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/button_secondary"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:text="Save changes"
+                android:textColor="@color/sharely_primary"
+                android:textStyle="bold" />
+
+        </LinearLayout>
 
         <!-- Logout -->
 
