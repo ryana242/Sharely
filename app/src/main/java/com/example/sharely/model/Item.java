@@ -14,8 +14,8 @@ public class Item {
     private double price;
     private String location;
     private ArrayList<String> imageUrls;
-
     private ItemStatus status;
+    private AvailabilitySlot availabilitySlot;
 
 
     public Item(
@@ -103,6 +103,16 @@ public class Item {
         return location;
     }
 
+    public AvailabilitySlot getAvailabilitySlot() {
+        return availabilitySlot;
+    }
+
+    public void setAvailabilitySlot(
+            AvailabilitySlot availabilitySlot
+    ) {
+        this.availabilitySlot = availabilitySlot;
+    }
+
 
     public ArrayList<String> getImageUrls() {
         return imageUrls;
@@ -115,13 +125,17 @@ public class Item {
 
     public void setUnavailable() {
 
-        status = ItemStatus.UNAVAILABLE;
+        if (status != ItemStatus.PAST) {
+            status = ItemStatus.UNAVAILABLE;
+        }
 
     }
 
     public void setActive() {
 
-        status = ItemStatus.ACTIVE;
+        if (status != ItemStatus.PAST) {
+            status = ItemStatus.ACTIVE;
+        }
 
     }
 
@@ -130,4 +144,5 @@ public class Item {
         status = ItemStatus.PAST;
 
     }
+
 }

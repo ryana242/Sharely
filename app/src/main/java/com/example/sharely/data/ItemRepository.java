@@ -2,9 +2,11 @@ package com.example.sharely.data;
 
 import com.example.sharely.model.Item;
 import com.example.sharely.enums.ItemStatus;
+import com.example.sharely.model.AvailabilitySlot;
 
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.DocumentReference;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,7 +53,8 @@ public class ItemRepository {
 
     // ADD ITEM
     public void addItem(
-            Item item
+            Item item,
+            OnItemAddedListener listener
     ) {
 
         Map<String, Object> itemData = new HashMap<>();
@@ -101,11 +104,41 @@ public class ItemRepository {
                 item.getStatus().name()
         );
 
+        // AVAILABILITY
+
+        AvailabilitySlot availability =
+                item.getAvailabilitySlot();
+
+        if (availability != null) {
+
+            if (!availability.isValid()) {
+                throw new IllegalArgumentException(
+                        "Invalid item availability"
+                );
+            }
+
+            itemData.put(
+                    "availabilityStart",
+                    availability.getStartTime()
+            );
+
+            itemData.put(
+                    "availabilityEnd",
+                    availability.getEndTime()
+            );
+        }
+
 
         db.collection("items")
                 .document(item.getItemId())
-                .set(
-                        itemData
+                .set(itemData)
+
+                .addOnSuccessListener(unused -> {
+                    listener.onSuccess();
+                })
+
+                .addOnFailureListener(
+                        listener::onFailure
                 );
     }
 
@@ -131,6 +164,15 @@ public class ItemRepository {
         void onFailure(
                 Exception e
         );
+    }
+
+    // CALLBACK FOR ADD ITEM
+
+    public interface OnItemAddedListener {
+
+        void onSuccess();
+
+        void onFailure(Exception e);
     }
 
     //GET ALL ITEMS
@@ -218,7 +260,6 @@ public class ItemRepository {
     }
 
     // CALLBACK FOR OWNER ITEMS
-
     public interface OnOwnerItemsLoadedListener {
 
         void onSuccess(
@@ -236,14 +277,12 @@ public class ItemRepository {
                 .document()
                 .getId();
     }
-    // CONVERT DOCUMENT TO ITEM
 
+    // CONVERT DOCUMENT TO ITEM
     private Item documentToItem(
             DocumentSnapshot document
     ) {
-
         // IMAGE URLS
-
         ArrayList<String> imageUrls =
                 new ArrayList<>();
 
@@ -252,7 +291,6 @@ public class ItemRepository {
                 document.get(
                         "imageUrls"
                 );
-
 
         if (imageData instanceof List<?>) {
 
@@ -272,12 +310,10 @@ public class ItemRepository {
 
 
         // STATUS
-
         String statusText =
                 document.getString(
                         "status"
                 );
-
 
         ItemStatus status =
                 ItemStatus.ACTIVE;
@@ -317,8 +353,7 @@ public class ItemRepository {
 
 
         // CREATE ITEM
-
-        return new Item(
+        Item item = new Item(
                 document.getString("itemId"),
                 document.getString("ownerId"),
                 document.getString("itemName"),
@@ -329,29 +364,105 @@ public class ItemRepository {
                 imageUrls,
                 status
         );
+
+        // LOAD AVAILABILITY
+        Long startTime =
+                document.getLong(
+                        "availabilityStart"
+                );
+
+        Long endTime =
+                document.getLong(
+                        "availabilityEnd"
+                );
+
+        if (startTime != null && endTime != null) {
+            AvailabilitySlot availability =
+                    new AvailabilitySlot(
+                            startTime,
+                            endTime
+                    );
+            if (availability.isValid()) {
+                item.setAvailabilitySlot(
+                        availability
+                );
+            }
+        }
+        return item;
+
     }
 
     // UPDATE ITEM STATUS
 
     public void updateItemStatus(
             String itemId,
-            ItemStatus status,
+            ItemStatus newStatus,
             OnItemStatusUpdatedListener listener
     ) {
 
-        db.collection("items")
-                .document(itemId)
-                .update(
-                        "status",
-                        status.name()
-                )
-                .addOnSuccessListener(unused -> {
+        DocumentReference itemRef =
+                db.collection("items")
+                        .document(itemId);
 
-                    listener.onSuccess();
-                })
-                .addOnFailureListener(
-                        listener::onFailure
+        db.runTransaction(transaction -> {
+
+            // Get current item
+            DocumentSnapshot document =
+                    transaction.get(itemRef);
+
+            if (!document.exists()) {
+                throw new IllegalStateException(
+                        "Item not found"
                 );
+            }
+
+            // Get current status
+            String statusString =
+                    document.getString("status");
+
+            if (statusString == null) {
+                throw new IllegalStateException(
+                        "Item status not found"
+                );
+            }
+
+            ItemStatus currentStatus;
+
+            try {
+                currentStatus =
+                        ItemStatus.valueOf(statusString);
+
+            } catch (IllegalArgumentException e) {
+
+                throw new IllegalStateException(
+                        "Invalid item status"
+                );
+            }
+
+            // Prevent reactivating permanently removed items
+            if (currentStatus == ItemStatus.PAST) {
+
+                throw new IllegalStateException(
+                        "Permanently removed items cannot be reactivated"
+                );
+            }
+
+            // Update status
+            transaction.update(
+                    itemRef,
+                    "status",
+                    newStatus.name()
+            );
+
+            return null;
+
+        }).addOnSuccessListener(unused -> {
+
+            listener.onSuccess();
+
+        }).addOnFailureListener(
+                listener::onFailure
+        );
     }
     // CALLBACK FOR ITEM STATUS UPDATE
 

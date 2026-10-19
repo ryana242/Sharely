@@ -254,7 +254,6 @@ public class AddItemActivity extends AppCompatActivity {
         ArrayList<String> imageUrls =
                 new ArrayList<>();
 
-
         // No images
         if (selectedImages.isEmpty()) {
 
@@ -270,21 +269,10 @@ public class AddItemActivity extends AppCompatActivity {
                             imageUrls
                     );
 
-            itemRepository.addItem(
-                    item
-            );
-
-            Toast.makeText(
-                    this,
-                    "Item published successfully",
-                    Toast.LENGTH_SHORT
-            ).show();
-
-            finish();
+            saveItem(item);
 
             return;
         }
-
 
         // Prepare URL list
         for (int i = 0; i < selectedImages.size(); i++) {
@@ -353,19 +341,7 @@ public class AddItemActivity extends AppCompatActivity {
                                             imageUrls
                                     );
 
-                            itemRepository.addItem(
-                                    item
-                            );
-
-
-                            Toast.makeText(
-                                    this,
-                                    "Item published successfully",
-                                    Toast.LENGTH_SHORT
-                            ).show();
-
-
-                            finish();
+                            saveItem(item);
                         }
                     })
 
@@ -384,6 +360,43 @@ public class AddItemActivity extends AppCompatActivity {
         }
     }
 
+    private void saveItem(Item item) {
+
+        itemRepository.addItem(
+                item,
+                new ItemRepository.OnItemAddedListener() {
+
+                    @Override
+                    public void onSuccess() {
+
+                        Toast.makeText(
+                                AddItemActivity.this,
+                                "Item published successfully",
+                                Toast.LENGTH_SHORT
+                        ).show();
+
+                        finish();
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+
+                        publishButton.setEnabled(true);
+
+                        publishButton.setText(
+                                "Publish item"
+                        );
+
+                        Toast.makeText(
+                                AddItemActivity.this,
+                                "Failed to publish item: "
+                                        + e.getMessage(),
+                                Toast.LENGTH_LONG
+                        ).show();
+                    }
+                }
+        );
+    }
 
     private void updatePhotoPreviews() {
 
