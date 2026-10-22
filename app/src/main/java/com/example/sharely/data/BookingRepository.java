@@ -7,7 +7,6 @@ import com.example.sharely.enums.BookingStatus;
 import com.google.firebase.firestore.DocumentSnapshot;
 
 import com.example.sharely.model.AvailabilitySlot;
-import com.example.sharely.model.Booking;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +23,102 @@ public class BookingRepository {
         db = FirebaseFirestore.getInstance();
     }
 
+    // CONVERT FIRESTORE DOCUMENT TO BOOKING
+    private Booking documentToBooking(
+            DocumentSnapshot document
+    ) {
+
+        String bookingId =
+                document.getString("bookingId");
+
+        String borrowerId =
+                document.getString("borrowerId");
+
+        String itemId =
+                document.getString("itemId");
+
+        Long startTime =
+                document.getLong("startTime");
+
+        Long endTime =
+                document.getLong("endTime");
+
+        String statusString =
+                document.getString("status");
+
+
+        if (bookingId == null
+                || borrowerId == null
+                || itemId == null
+                || startTime == null
+                || endTime == null
+                || statusString == null) {
+
+            return null;
+        }
+
+
+        AvailabilitySlot slot =
+                new AvailabilitySlot(
+                        startTime,
+                        endTime
+                );
+
+        if (!slot.isValid()) {
+            return null;
+        }
+
+
+        Booking booking =
+                new Booking(
+                        bookingId,
+                        borrowerId,
+                        itemId,
+                        slot
+                );
+
+
+        BookingStatus status;
+
+        try {
+            status = BookingStatus.valueOf(statusString);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+
+
+        switch (status) {
+
+            case ACCEPTED:
+                booking.acceptBooking();
+                break;
+
+            case ACTIVE:
+                booking.acceptBooking();
+                booking.startBooking();
+                break;
+
+            case COMPLETED:
+                booking.acceptBooking();
+                booking.startBooking();
+                booking.completeBooking();
+                break;
+
+            case REJECTED:
+                booking.rejectBooking();
+                break;
+
+            case CANCELLED:
+                booking.cancelBooking();
+                break;
+
+            case PENDING:
+            default:
+                break;
+        }
+
+        return booking;
+    }
 
     // =========================================================
     // GENERATE BOOKING ID
@@ -114,121 +209,82 @@ public class BookingRepository {
         db.collection("bookings")
                 .whereEqualTo("borrowerId", borrowerId)
                 .get()
-
                 .addOnSuccessListener(querySnapshot -> {
 
                     List<Booking> bookings =
                             new ArrayList<>();
 
-
-                    for (DocumentSnapshot document :
-                            querySnapshot.getDocuments()) {
-
-                        String bookingId =
-                                document.getString("bookingId");
-
-                        String bookingBorrowerId =
-                                document.getString("borrowerId");
-
-                        String itemId =
-                                document.getString("itemId");
-
-                        Long startTime =
-                                document.getLong("startTime");
-
-                        Long endTime =
-                                document.getLong("endTime");
-
-                        String statusString =
-                                document.getString("status");
-
-
-                        if (bookingId == null
-                                || bookingBorrowerId == null
-                                || itemId == null
-                                || startTime == null
-                                || endTime == null
-                                || statusString == null) {
-
-                            continue;
-                        }
-
-
-                        AvailabilitySlot slot =
-                                new AvailabilitySlot(
-                                        startTime,
-                                        endTime
-                                );
-
+                    for (DocumentSnapshot document
+                            : querySnapshot.getDocuments()) {
 
                         Booking booking =
-                                new Booking(
-                                        bookingId,
-                                        bookingBorrowerId,
-                                        itemId,
-                                        slot
-                                );
+                                documentToBooking(document);
 
-
-                        BookingStatus status =
-                                BookingStatus.valueOf(
-                                        statusString
-                                );
-
-
-                        switch (status) {
-
-                            case ACCEPTED:
-
-                                booking.acceptBooking();
-                                break;
-
-
-                            case ACTIVE:
-
-                                booking.acceptBooking();
-                                booking.startBooking();
-                                break;
-
-
-                            case COMPLETED:
-
-                                booking.acceptBooking();
-                                booking.startBooking();
-                                booking.completeBooking();
-                                break;
-
-
-                            case REJECTED:
-
-                                booking.rejectBooking();
-                                break;
-
-
-                            case CANCELLED:
-
-                                booking.cancelBooking();
-                                break;
-
-
-                            case PENDING:
-                            default:
-
-                                break;
+                        if (booking != null) {
+                            bookings.add(booking);
                         }
-
-
-                        bookings.add(
-                                booking
-                        );
                     }
 
-
-                    listener.onSuccess(
-                            bookings
-                    );
+                    listener.onSuccess(bookings);
                 })
+                .addOnFailureListener(
+                        listener::onFailure
+                );
+    }
 
+
+    // =========================================================
+    // GET BOOKINGS BY ITEM
+    // =========================================================
+    public void getBookingsByItem(
+            String itemId,
+            OnBookingsLoadedListener listener
+    ) {
+
+        db.collection("bookings")
+                .whereEqualTo("itemId", itemId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+
+                    List<Booking> bookings =
+                            new ArrayList<>();
+
+                    for (DocumentSnapshot document
+                            : querySnapshot.getDocuments()) {
+
+                        Booking booking =
+                                documentToBooking(document);
+
+                        if (booking != null) {
+                            bookings.add(booking);
+                        }
+                    }
+
+                    listener.onSuccess(bookings);
+                })
+                .addOnFailureListener(
+                        listener::onFailure
+                );
+    }
+    // =========================================================
+    // UPDATE BOOKING STATUS
+    // =========================================================
+    public void updateBookingStatus(
+            String bookingId,
+            BookingStatus status,
+            OnBookingStatusUpdatedListener listener
+    ) {
+
+        db.collection("bookings")
+                .document(bookingId)
+                .update(
+                        "status",
+                        status.name()
+                )
+                .addOnSuccessListener(unused -> {
+
+                    listener.onSuccess();
+                })
                 .addOnFailureListener(
                         listener::onFailure
                 );
@@ -257,5 +313,12 @@ public class BookingRepository {
                 Exception e
 
         );
+    }
+
+    public interface OnBookingStatusUpdatedListener {
+
+        void onSuccess();
+
+        void onFailure(Exception e);
     }
 }

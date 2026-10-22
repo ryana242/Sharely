@@ -1,10 +1,10 @@
-
 package com.example.sharely.model;
-
-import java.util.ArrayList;
 
 import com.example.sharely.enums.ItemStatus;
 
+import java.util.ArrayList;
+
+/** A Sharely listing and its owner-defined availability. */
 public class Item {
 
     private String itemId;
@@ -15,12 +15,13 @@ public class Item {
     private double price;
     private String location;
     private ArrayList<String> imageUrls;
-
-    private AvailabilitySlot availability;
     private ItemStatus status;
 
+    // One source of truth for both feature branches.
+    // May be null when loading older listings from Firestore.
+    private AvailabilitySlot availabilitySlot;
 
-    // Constructor for new listings
+    // New listing constructor.
     public Item(
             String itemId,
             String ownerId,
@@ -31,21 +32,11 @@ public class Item {
             String location,
             ArrayList<String> imageUrls
     ) {
-
-        this.itemId = itemId;
-        this.ownerId = ownerId;
-        this.itemName = itemName;
-        this.description = description;
-        this.category = category;
-        this.price = price;
-        this.location = location;
-        this.imageUrls = imageUrls;
-
-        this.status = ItemStatus.ACTIVE;
+        this(itemId, ownerId, itemName, description, category,
+                price, location, imageUrls, ItemStatus.ACTIVE);
     }
 
-
-    // Constructor for items loaded from Firestore
+    // Constructor used when loading a listing from Firestore.
     public Item(
             String itemId,
             String ownerId,
@@ -57,7 +48,6 @@ public class Item {
             ArrayList<String> imageUrls,
             ItemStatus status
     ) {
-
         this.itemId = itemId;
         this.ownerId = ownerId;
         this.itemName = itemName;
@@ -69,8 +59,6 @@ public class Item {
         this.status = status;
     }
 
-
-    // Getters
     public String getItemId() {
         return itemId;
     }
@@ -107,53 +95,48 @@ public class Item {
         return status;
     }
 
-
-    // Availability
-    public AvailabilitySlot getAvailability() {
-        return availability;
+    // Leo's repository API: writes/reads Firestore availability timestamps.
+    public AvailabilitySlot getAvailabilitySlot() {
+        return availabilitySlot;
     }
 
-    public void setAvailability(AvailabilitySlot availability) {
-
-        if (availability == null || !availability.isValid()) {
+    public void setAvailabilitySlot(AvailabilitySlot slot) {
+        if (slot == null || !slot.isValid()) {
             throw new IllegalArgumentException(
                     "Item availability must be a valid time period"
             );
         }
-
-        this.availability = availability;
+        availabilitySlot = slot;
     }
 
+    // Compatibility with Ryana's existing code and unit tests.
+    public AvailabilitySlot getAvailability() {
+        return getAvailabilitySlot();
+    }
 
-    // Temporarily make a listing unavailable
+    public void setAvailability(AvailabilitySlot slot) {
+        setAvailabilitySlot(slot);
+    }
+
     public void setUnavailable() {
-
         if (status == ItemStatus.PAST) {
             throw new IllegalStateException(
                     "A taken-down item cannot be made unavailable"
             );
         }
-
         status = ItemStatus.UNAVAILABLE;
     }
 
-
-    // Activate or reactivate a listing
     public void setActive() {
-
         if (status == ItemStatus.PAST) {
             throw new IllegalStateException(
                     "A taken-down item cannot be reactivated"
             );
         }
-
         status = ItemStatus.ACTIVE;
     }
 
-
-    // Permanently take down a listing
     public void setPast() {
-
         status = ItemStatus.PAST;
     }
 }
