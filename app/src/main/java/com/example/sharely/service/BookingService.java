@@ -1,3 +1,4 @@
+
 package com.example.sharely.service;
 
 import com.example.sharely.enums.BookingStatus;
@@ -8,16 +9,17 @@ import java.util.List;
 
 public class BookingService {
 
-    // Check whether the booking is eligible for processing.
+    // Validate a booking that is waiting for approval.
     private boolean isValidPendingBooking(Booking booking) {
 
         return booking != null
                 && booking.getStatus() == BookingStatus.PENDING
                 && booking.getItemId() != null
                 && !booking.getItemId().trim().isEmpty()
+                && booking.getBorrowerId() != null
+                && !booking.getBorrowerId().trim().isEmpty()
                 && booking.hasValidTimeSlot();
     }
-
 
     // Check whether an owner can accept a booking.
     public boolean canAcceptBooking(
@@ -35,7 +37,6 @@ public class BookingService {
             if (existingBooking != null
                     && existingBooking.blocksAvailability()
                     && newBooking.conflictsWith(existingBooking)) {
-
                 return false;
             }
         }
@@ -43,8 +44,7 @@ public class BookingService {
         return true;
     }
 
-
-    // Attempt to accept the booking.
+    // Accept a booking only if valid.
     public boolean acceptBooking(
             Booking newBooking,
             List<Booking> existingBookings
@@ -56,10 +56,9 @@ public class BookingService {
 
         newBooking.acceptBooking();
 
-        // Only report success if the state actually changed.
-        return newBooking.getStatus() == BookingStatus.ACCEPTED;
+        return newBooking.getStatus()
+                == BookingStatus.ACCEPTED;
     }
-
 
     // Validate a borrower's requested booking period.
     public boolean canRequestBooking(
@@ -72,7 +71,6 @@ public class BookingService {
                 || ownerAvailability == null
                 || ownerAvailability.isEmpty()
                 || existingBookings == null) {
-
             return false;
         }
 
@@ -95,10 +93,22 @@ public class BookingService {
 
         for (Booking existingBooking : existingBookings) {
 
-            if (existingBooking != null
-                    && existingBooking.blocksAvailability()
-                    && newBooking.conflictsWith(existingBooking)) {
+            if (existingBooking == null) {
+                continue;
+            }
 
+            // Accepted and active bookings block availability.
+            if (existingBooking.blocksAvailability()
+                    && newBooking.conflictsWith(existingBooking)) {
+                return false;
+            }
+
+            // Prevent the same borrower from repeatedly sending
+            // overlapping pending requests for the same item.
+            if (existingBooking.getStatus() == BookingStatus.PENDING
+                    && newBooking.getBorrowerId().equals(
+                    existingBooking.getBorrowerId())
+                    && newBooking.conflictsWith(existingBooking)) {
                 return false;
             }
         }
