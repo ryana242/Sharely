@@ -1,51 +1,36 @@
+
 package com.example.sharely.data;
 
-import com.example.sharely.model.Booking;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QuerySnapshot;
 import com.example.sharely.enums.BookingStatus;
-import com.google.firebase.firestore.DocumentSnapshot;
-
 import com.example.sharely.model.AvailabilitySlot;
+import com.example.sharely.model.Booking;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class BookingRepository {
 
     private final FirebaseFirestore db;
 
-
     public BookingRepository() {
-
         db = FirebaseFirestore.getInstance();
     }
 
-    // CONVERT FIRESTORE DOCUMENT TO BOOKING
-    private Booking documentToBooking(
-            DocumentSnapshot document
-    ) {
+    // Convert a Firestore document into a Booking object.
+    private Booking documentToBooking(DocumentSnapshot document) {
 
-        String bookingId =
-                document.getString("bookingId");
+        String bookingId = document.getString("bookingId");
+        String borrowerId = document.getString("borrowerId");
+        String itemId = document.getString("itemId");
 
-        String borrowerId =
-                document.getString("borrowerId");
+        Long startTime = document.getLong("startTime");
+        Long endTime = document.getLong("endTime");
 
-        String itemId =
-                document.getString("itemId");
-
-        Long startTime =
-                document.getLong("startTime");
-
-        Long endTime =
-                document.getLong("endTime");
-
-        String statusString =
-                document.getString("status");
-
+        String statusString = document.getString("status");
 
         if (bookingId == null
                 || borrowerId == null
@@ -53,30 +38,22 @@ public class BookingRepository {
                 || startTime == null
                 || endTime == null
                 || statusString == null) {
-
             return null;
         }
 
-
         AvailabilitySlot slot =
-                new AvailabilitySlot(
-                        startTime,
-                        endTime
-                );
+                new AvailabilitySlot(startTime, endTime);
 
         if (!slot.isValid()) {
             return null;
         }
 
-
-        Booking booking =
-                new Booking(
-                        bookingId,
-                        borrowerId,
-                        itemId,
-                        slot
-                );
-
+        Booking booking = new Booking(
+                bookingId,
+                borrowerId,
+                itemId,
+                slot
+        );
 
         BookingStatus status;
 
@@ -85,7 +62,6 @@ public class BookingRepository {
         } catch (IllegalArgumentException e) {
             return null;
         }
-
 
         switch (status) {
 
@@ -120,31 +96,18 @@ public class BookingRepository {
         return booking;
     }
 
-    // =========================================================
-    // GENERATE BOOKING ID
-    // =========================================================
-
+    // Generate a new Firestore document ID.
     public String generateBookingId() {
-
-        return db
-                .collection("bookings")
-                .document()
-                .getId();
+        return db.collection("bookings").document().getId();
     }
 
-
-    // =========================================================
-    // ADD BOOKING
-    // =========================================================
-
+    // Save a booking to Firestore.
     public void addBooking(
             Booking booking,
             OnBookingSavedListener listener
     ) {
 
-        Map<String, Object> bookingData =
-                new HashMap<>();
-
+        Map<String, Object> bookingData = new HashMap<>();
 
         bookingData.put(
                 "bookingId",
@@ -163,44 +126,29 @@ public class BookingRepository {
 
         bookingData.put(
                 "startTime",
-                booking
-                        .getBookingSlot()
-                        .getStartTime()
+                booking.getBookingSlot().getStartTime()
         );
 
         bookingData.put(
                 "endTime",
-                booking
-                        .getBookingSlot()
-                        .getEndTime()
+                booking.getBookingSlot().getEndTime()
         );
 
         bookingData.put(
                 "status",
-                booking
-                        .getStatus()
-                        .name()
+                booking.getStatus().name()
         );
 
-
         db.collection("bookings")
-                .document(
-                        booking.getBookingId()
-                )
+                .document(booking.getBookingId())
                 .set(bookingData)
-
                 .addOnSuccessListener(unused -> {
                     listener.onSuccess();
                 })
-
-                .addOnFailureListener(e -> {
-                    listener.onFailure(e);
-                });
+                .addOnFailureListener(listener::onFailure);
     }
 
-    // =========================================================
-    // Get current user all bookings information
-    // =========================================================
+    // Retrieve bookings belonging to a borrower.
     public void getBookingsByBorrower(
             String borrowerId,
             OnBookingsLoadedListener listener
@@ -211,14 +159,12 @@ public class BookingRepository {
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
 
-                    List<Booking> bookings =
-                            new ArrayList<>();
+                    List<Booking> bookings = new ArrayList<>();
 
                     for (DocumentSnapshot document
                             : querySnapshot.getDocuments()) {
 
-                        Booking booking =
-                                documentToBooking(document);
+                        Booking booking = documentToBooking(document);
 
                         if (booking != null) {
                             bookings.add(booking);
@@ -227,15 +173,10 @@ public class BookingRepository {
 
                     listener.onSuccess(bookings);
                 })
-                .addOnFailureListener(
-                        listener::onFailure
-                );
+                .addOnFailureListener(listener::onFailure);
     }
 
-
-    // =========================================================
-    // GET BOOKINGS BY ITEM
-    // =========================================================
+    // Retrieve bookings associated with an item.
     public void getBookingsByItem(
             String itemId,
             OnBookingsLoadedListener listener
@@ -246,29 +187,33 @@ public class BookingRepository {
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
 
-                    List<Booking> bookings =
-                            new ArrayList<>();
+                    List<Booking> bookings = new ArrayList<>();
 
                     for (DocumentSnapshot document
                             : querySnapshot.getDocuments()) {
 
-                        Booking booking =
-                                documentToBooking(document);
+                        Booking booking = documentToBooking(document);
 
-                        if (booking != null) {
-                            bookings.add(booking);
+                        // Do not silently ignore a malformed booking:
+                        // doing so could hide an existing conflict.
+                        if (booking == null) {
+                            listener.onFailure(
+                                    new IllegalStateException(
+                                            "Invalid booking record for this item"
+                                    )
+                            );
+                            return;
                         }
+
+                        bookings.add(booking);
                     }
 
                     listener.onSuccess(bookings);
                 })
-                .addOnFailureListener(
-                        listener::onFailure
-                );
+                .addOnFailureListener(listener::onFailure);
     }
-    // =========================================================
-    // UPDATE BOOKING STATUS
-    // =========================================================
+
+    // Update booking status in Firestore.
     public void updateBookingStatus(
             String bookingId,
             BookingStatus status,
@@ -277,48 +222,26 @@ public class BookingRepository {
 
         db.collection("bookings")
                 .document(bookingId)
-                .update(
-                        "status",
-                        status.name()
-                )
+                .update("status", status.name())
                 .addOnSuccessListener(unused -> {
-
                     listener.onSuccess();
                 })
-                .addOnFailureListener(
-                        listener::onFailure
-                );
+                .addOnFailureListener(listener::onFailure);
     }
 
-    // =========================================================
-    // CALLBACK
-    // =========================================================
-
+    // Callbacks
     public interface OnBookingSavedListener {
-
         void onSuccess();
-
         void onFailure(Exception e);
     }
+
     public interface OnBookingsLoadedListener {
-
-        void onSuccess(
-
-                List<Booking> bookings
-
-        );
-
-        void onFailure(
-
-                Exception e
-
-        );
+        void onSuccess(List<Booking> bookings);
+        void onFailure(Exception e);
     }
 
     public interface OnBookingStatusUpdatedListener {
-
         void onSuccess();
-
         void onFailure(Exception e);
     }
 }

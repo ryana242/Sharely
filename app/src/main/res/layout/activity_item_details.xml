@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/itemDetailsMain"
     android:layout_width="match_parent"
@@ -15,7 +14,6 @@
         android:paddingTop="20dp"
         android:paddingRight="22dp"
         android:paddingBottom="36dp">
-
 
         <!-- Top bar -->
 
@@ -50,8 +48,7 @@
 
         </LinearLayout>
 
-
-        <!-- Item image -->
+        <!-- Item photos -->
 
         <HorizontalScrollView
             android:id="@+id/photoScroll"
@@ -59,13 +56,14 @@
             android:layout_height="240dp"
             android:layout_marginTop="18dp"
             android:scrollbars="none">
+
             <LinearLayout
                 android:id="@+id/photoContainer"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:orientation="horizontal" />
-        </HorizontalScrollView>
 
+        </HorizontalScrollView>
 
         <!-- Item heading -->
 
@@ -98,18 +96,16 @@
 
         </LinearLayout>
 
-
-        <!-- Rating / distance -->
+        <!-- Location -->
 
         <TextView
             android:id="@+id/textItemInfo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="9dp"
-            android:text="Distance · Rating"
+            android:text="Location"
             android:textColor="@color/sharely_text_secondary"
             android:textSize="14sp" />
-
 
         <!-- Description -->
 
@@ -132,8 +128,7 @@
             android:textColor="@color/sharely_text_secondary"
             android:textSize="15sp" />
 
-
-        <!-- Booking card -->
+        <!-- Booking section -->
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -159,8 +154,20 @@
                 android:textColor="@color/sharely_text_secondary"
                 android:textSize="14sp" />
 
+            <!-- Owner availability -->
 
-            <!-- Start -->
+            <TextView
+                android:id="@+id/textOwnerAvailability"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/card_surface"
+                android:padding="12dp"
+                android:text="Loading owner availability..."
+                android:textColor="@color/sharely_text_primary"
+                android:textSize="14sp" />
+
+            <!-- Start time -->
 
             <TextView
                 android:id="@+id/textStartTime"
@@ -181,12 +188,11 @@
                 android:backgroundTint="@null"
                 android:text="Select start date &amp; time"
                 android:textAllCaps="false"
-                android:textColor="@color/white"
+                android:textColor="@color/sharely_primary"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
-
-            <!-- End -->
+            <!-- End time -->
 
             <TextView
                 android:id="@+id/textEndTime"
@@ -207,12 +213,11 @@
                 android:backgroundTint="@null"
                 android:text="Select end date &amp; time"
                 android:textAllCaps="false"
-                android:textColor="@color/white"
+                android:textColor="@color/sharely_primary"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
-
-            <!-- Main booking action -->
+            <!-- Request booking -->
 
             <Button
                 android:id="@+id/buttonRequestBooking"
