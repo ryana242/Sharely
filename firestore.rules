@@ -1,0 +1,495 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn()
+        && request.auth.uid == userId;
+    }
+
+    // -----------------------------------------------------
+    // USER SECURITY RULES
+    // -----------------------------------------------------
+
+    match /users/{userId} {
+
+      // Signed-in users can read profiles
+      allow read: if isSignedIn();
+
+      // Users can only create their own profile
+      allow create: if isOwner(userId)
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'email',
+          'rating',
+          'transactionCount'
+        ])
+        && request.resource.data.keys().hasAll([
+          'name',
+          'email',
+          'rating',
+          'transactionCount'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.email is string
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.rating is int
+        && request.resource.data.rating == 0
+        && request.resource.data.transactionCount is int
+        && request.resource.data.transactionCount == 0;
+
+      // Users can only change their own name
+      allow update: if isOwner(userId)
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly(['name'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0;
+
+      // Users cannot delete profiles
+      allow delete: if false;
+    }
+        // -----------------------------------------------------
+        // ITEMS SECURITY RULES
+        // -----------------------------------------------------
+
+        match /items/{itemId} {
+
+          // Signed-in users can view items
+          allow read: if isSignedIn();
+
+          // Users can only create their own items
+          allow create: if isSignedIn()
+            && request.resource.data.ownerId == request.auth.uid
+            && request.resource.data.itemId == itemId
+            && request.resource.data.status == "ACTIVE";
+
+          // Only owners can update their items
+          allow update: if isSignedIn()
+
+            // Check current owner
+            && resource.data.ownerId == request.auth.uid
+
+            // Prevent changing ownership
+            && request.resource.data.ownerId == resource.data.ownerId
+
+            // Prevent changing item ID
+            && request.resource.data.itemId == resource.data.itemId
+
+            // Prevent reactivating PAST items
+            && resource.data.status != "PAST"
+
+            // Only allow valid statuses
+            && request.resource.data.status in [
+              "ACTIVE",
+              "UNAVAILABLE",
+              "PAST"
+            ];
+
+          // Prevent deleting items
+          allow delete: if false;
+        }
+            // -----------------------------------------------------
+            // BOOKINGS SECURITY RULES
+            // -----------------------------------------------------
+
+            match /bookings/{bookingId} {
+
+              // Check whether the current user owns the item
+              function ownsItem(itemId) {
+                return isSignedIn()
+                  && exists(
+                    /databases/$(database)/documents/items/$(itemId)
+                  )
+                  && get(
+                    /databases/$(database)/documents/items/$(itemId)
+                  ).data.ownerId == request.auth.uid;
+              }
+
+              // Read bookings
+              allow read: if isSignedIn();
+
+              // Borrowers can create their own booking requests
+              allow create: if isSignedIn()
+
+                && request.resource.data.keys().hasOnly([
+                  'bookingId',
+                  'borrowerId',
+                  'itemId',
+                  'startTime',
+                  'endTime',
+                  'status'
+                ])
+
+                && request.resource.data.keys().hasAll([
+                  'bookingId',
+                  'borrowerId',
+                  'itemId',
+                  'startTime',
+                  'endTime',
+                  'status'
+                ])
+
+                && request.resource.data.bookingId == bookingId
+
+                && request.resource.data.borrowerId == request.auth.uid
+
+               && request.resource.data.itemId is string
+
+               && request.resource.data.itemId.size() > 0
+
+               // Item must exist
+
+               && exists(
+
+                 /databases/$(database)/documents/items/$(request.resource.data.itemId)
+
+               )
+
+               // Item must be active
+
+               && get(
+
+                 /databases/$(database)/documents/items/$(request.resource.data.itemId)
+
+               ).data.status == "ACTIVE"
+
+               // Borrower cannot book their own item
+
+               && !ownsItem(request.resource.data.itemId)
+
+                && request.resource.data.startTime is int
+
+                && request.resource.data.endTime is int
+
+                && request.resource.data.startTime
+                  < request.resource.data.endTime
+
+                && request.resource.data.status == "PENDING";
+
+              // Update booking status
+              allow update: if isSignedIn()
+
+                // Only status can be modified
+                && request.resource.data.diff(resource.data)
+                  .affectedKeys().hasOnly(['status'])
+
+                && (
+
+                  // Owner can accept or reject pending requests
+                  (
+                    ownsItem(resource.data.itemId)
+                    && resource.data.status == "PENDING"
+                    && request.resource.data.status in [
+                      "ACCEPTED",
+                      "REJECTED"
+                    ]
+                  )
+
+                  ||
+
+                  // Borrower can cancel pending requests
+                  (
+                    resource.data.borrowerId == request.auth.uid
+                    && resource.data.status == "PENDING"
+                    && request.resource.data.status == "CANCELLED"
+                  )
+
+                );
+
+              // Prevent deleting bookings
+              allow delete: if false;
+            }
+
+                // -----------------------------------------------------
+                // NOTIFICATIONS SECURITY RULES
+                // -----------------------------------------------------
+
+                match /notifications/{notificationId} {
+
+                  function validNotificationType(type) {
+                    return type in [
+                      'BOOKING_REQUEST',
+                      'BOOKING_ACCEPTED',
+                      'BOOKING_REJECTED',
+                      'BOOKING_CANCELLED',
+                      'NEW_MESSAGE'
+                    ];
+                  }
+
+                  function bookingExists(bookingId) {
+                    return bookingId is string
+                      && exists(
+                        /databases/$(database)/documents/bookings/$(bookingId)
+                      );
+                  }
+
+                  function bookingData(bookingId) {
+                    return get(
+                      /databases/$(database)/documents/bookings/$(bookingId)
+                    ).data;
+                  }
+
+                  function itemOwner(itemId) {
+                    return get(
+                      /databases/$(database)/documents/items/$(itemId)
+                    ).data.ownerId;
+                  }
+
+                  function validBookingNotification(data) {
+                    return bookingExists(data.relatedId)
+                      && exists(
+                        /databases/$(database)/documents/items/$(bookingData(data.relatedId).itemId)
+                      )
+                      && (
+                        (
+                          data.type == 'BOOKING_REQUEST'
+                          && bookingData(data.relatedId).status == 'PENDING'
+                          && data.senderId == bookingData(data.relatedId).borrowerId
+                          && data.recipientId == itemOwner(
+                            bookingData(data.relatedId).itemId
+                          )
+                        )
+                        ||
+                        (
+                          data.type == 'BOOKING_ACCEPTED'
+                          && bookingData(data.relatedId).status == 'ACCEPTED'
+                          && data.senderId == itemOwner(
+                            bookingData(data.relatedId).itemId
+                          )
+                          && data.recipientId == bookingData(data.relatedId).borrowerId
+                        )
+                        ||
+                        (
+                          data.type == 'BOOKING_REJECTED'
+                          && bookingData(data.relatedId).status == 'REJECTED'
+                          && data.senderId == itemOwner(
+                            bookingData(data.relatedId).itemId
+                          )
+                          && data.recipientId == bookingData(data.relatedId).borrowerId
+                        )
+                        ||
+                        (
+                          data.type == 'BOOKING_CANCELLED'
+                          && bookingData(data.relatedId).status == 'CANCELLED'
+                          && data.senderId == bookingData(data.relatedId).borrowerId
+                          && data.recipientId == itemOwner(
+                            bookingData(data.relatedId).itemId
+                          )
+                        )
+                      );
+                  }
+
+                  // Only recipient can read notifications
+                  allow read: if isSignedIn()
+                    && resource.data.recipientId == request.auth.uid;
+
+                  // Create a notification for a valid booking event
+                  allow create: if isSignedIn()
+
+                    && request.resource.data.keys().hasOnly([
+                      'notificationId',
+                      'recipientId',
+                      'senderId',
+                      'type',
+                      'title',
+                      'message',
+                      'relatedId',
+                      'isRead',
+                      'createdAt'
+                    ])
+
+                    && request.resource.data.keys().hasAll([
+                      'notificationId',
+                      'recipientId',
+                      'senderId',
+                      'type',
+                      'title',
+                      'message',
+                      'relatedId',
+                      'isRead',
+                      'createdAt'
+                    ])
+
+                    && request.resource.data.notificationId == notificationId
+
+                    && request.resource.data.senderId == request.auth.uid
+
+                    && request.resource.data.recipientId is string
+
+                    && request.resource.data.recipientId != request.auth.uid
+
+                    && request.resource.data.type is string
+
+                    && validNotificationType(request.resource.data.type)
+
+                    && request.resource.data.title is string
+                    && request.resource.data.title.size() <= 100
+
+                    && request.resource.data.message is string
+                    && request.resource.data.message.size() <= 500
+
+                    && request.resource.data.relatedId is string
+
+                    && request.resource.data.isRead == false
+
+                    && request.resource.data.createdAt is int
+
+                    // Booking notifications must match real booking data
+                    && validBookingNotification(request.resource.data);
+
+                  // Only recipient can change read/unread status
+                  allow update: if isSignedIn()
+
+                    && resource.data.recipientId == request.auth.uid
+
+                    && request.resource.data.diff(resource.data)
+                      .affectedKeys().hasOnly(['isRead'])
+
+                    && request.resource.data.isRead is bool;
+
+                  // Notifications cannot be deleted by clients
+                  allow delete: if false;
+                }
+
+    // -----------------------------------------------------
+    // REVIEWS SECURITY RULES
+    // -----------------------------------------------------
+
+    match /reviews/{reviewId} {
+
+      function bookingExists(bookingId) {
+        return bookingId is string
+          && exists(
+            /databases/$(database)/documents/bookings/$(bookingId)
+          );
+      }
+
+      function bookingData(bookingId) {
+        return get(
+          /databases/$(database)/documents/bookings/$(bookingId)
+        ).data;
+      }
+
+      function itemExists(itemId) {
+        return itemId is string
+          && exists(
+            /databases/$(database)/documents/items/$(itemId)
+          );
+      }
+
+      function ownerId(itemId) {
+        return get(
+          /databases/$(database)/documents/items/$(itemId)
+        ).data.ownerId;
+      }
+
+      function validReviewParticipants(data) {
+
+        return bookingExists(data.bookingId)
+
+          // Booking must be completed
+          && bookingData(data.bookingId).status == 'COMPLETED'
+
+          // Referenced item must exist
+          && itemExists(bookingData(data.bookingId).itemId)
+
+          // Borrower and owner must be different users
+          && bookingData(data.bookingId).borrowerId
+            != ownerId(bookingData(data.bookingId).itemId)
+
+          && (
+
+            // Borrower reviews Owner
+            (
+              data.reviewerId == bookingData(data.bookingId).borrowerId
+
+              && data.revieweeId == ownerId(
+                bookingData(data.bookingId).itemId
+              )
+
+              && data.revieweeRole == 'OWNER'
+            )
+
+            ||
+
+            // Owner reviews Borrower
+            (
+              data.reviewerId == ownerId(
+                bookingData(data.bookingId).itemId
+              )
+
+              && data.revieweeId == bookingData(data.bookingId).borrowerId
+
+              && data.revieweeRole == 'BORROWER'
+            )
+          );
+      }
+
+      // Signed-in users can view reviews
+      allow read: if isSignedIn();
+
+      // Only booking participants can create reviews
+      allow create: if isSignedIn()
+
+        && request.resource.data.keys().hasOnly([
+          'reviewId',
+          'bookingId',
+          'reviewerId',
+          'revieweeId',
+          'revieweeRole',
+          'rating',
+          'comment',
+          'createdAt'
+        ])
+
+        && request.resource.data.keys().hasAll([
+          'reviewId',
+          'bookingId',
+          'reviewerId',
+          'revieweeId',
+          'revieweeRole',
+          'rating',
+          'comment',
+          'createdAt'
+        ])
+
+        // Review ID must be deterministic
+        && request.resource.data.reviewId == reviewId
+
+        && reviewId ==
+          request.resource.data.bookingId + '_' +
+          request.resource.data.reviewerId
+
+        // Current user must be reviewer
+        && request.resource.data.reviewerId == request.auth.uid
+
+        // Validate rating
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+
+        // Validate comment
+        && request.resource.data.comment is string
+        && request.resource.data.comment.size() <= 1000
+
+        // Validate timestamp
+        && request.resource.data.createdAt is int
+
+        // Validate booking and participants
+        && validReviewParticipants(request.resource.data);
+
+      // Reviews cannot be modified after submission
+      allow update: if false;
+
+      // Reviews cannot be deleted by clients
+      allow delete: if false;
+    }
+
+  }
+}
