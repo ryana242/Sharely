@@ -1,601 +1,398 @@
+
 package com.example.sharely;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.content.Intent;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
-import com.example.sharely.data.ItemRepository;
-import com.example.sharely.model.Booking;
-import com.example.sharely.service.BookingActivityService;
-import com.example.sharely.enums.ItemStatus;
-import com.example.sharely.model.Item;
-
-
 import com.example.sharely.data.BookingRepository;
-import com.example.sharely.data.UserRepository;
 import com.example.sharely.data.ItemRepository;
+import com.example.sharely.data.UserRepository;
+import com.example.sharely.enums.ItemStatus;
+import com.example.sharely.model.Booking;
+import com.example.sharely.model.Item;
+import com.example.sharely.service.BookingActivityService;
 
 import java.util.List;
 
 public class ActivityFragment extends Fragment {
 
-    private BookingActivityService bookingActivityService;
+    private TextView borrowingTab;
+    private TextView listingsTab;
+
+    private LinearLayout borrowingContent;
+    private LinearLayout listingsContent;
+
+    private TextView ongoingSummary;
+    private TextView upcomingSummary;
+    private TextView historySummary;
+    private TextView activeSummary;
+    private TextView pastSummary;
+
     private BookingRepository bookingRepository;
-    private UserRepository userRepository;
     private ItemRepository itemRepository;
+    private UserRepository userRepository;
 
-    public ActivityFragment() {
-    }
-
-
+    @Nullable
     @Override
     public View onCreateView(
             @NonNull LayoutInflater inflater,
-            ViewGroup container,
+            ViewGroup parent,
             Bundle savedInstanceState
     ) {
-
         return inflater.inflate(
                 R.layout.fragment_activity,
-                container,
+                parent,
                 false
         );
     }
 
-
     @Override
     public void onViewCreated(
             @NonNull View view,
-            @Nullable Bundle savedInstanceState
+            @Nullable Bundle state
     ) {
+        super.onViewCreated(view, state);
 
-        super.onViewCreated(
-                view,
-                savedInstanceState
-        );
+        borrowingTab = view.findViewById(R.id.tabBorrowing);
+        listingsTab = view.findViewById(R.id.tabListings);
 
+        borrowingContent =
+                view.findViewById(R.id.borrowingsContent);
 
-        // -----------------------------------------------------
-        // TAB VIEWS
-        // -----------------------------------------------------
+        listingsContent =
+                view.findViewById(R.id.listingsContent);
 
-        TextView borrowingTab =
-                view.findViewById(
-                        R.id.tabBorrowing
-                );
+        ongoingSummary =
+                view.findViewById(R.id.textOngoingSummary);
 
-        TextView listingsTab =
-                view.findViewById(
-                        R.id.tabListings
-                );
+        upcomingSummary =
+                view.findViewById(R.id.textUpcomingSummary);
 
-        LinearLayout borrowingsContent =
-                view.findViewById(
-                        R.id.borrowingsContent
-                );
+        historySummary =
+                view.findViewById(R.id.textHistorySummary);
 
-        LinearLayout listingsContent =
-                view.findViewById(
-                        R.id.listingsContent
-                );
+        activeSummary =
+                view.findViewById(R.id.textActiveListingsSummary);
 
-
-        // -----------------------------------------------------
-        // BORROWING SUMMARY VIEWS
-        // -----------------------------------------------------
-
-        TextView ongoingSummary =
-                view.findViewById(
-                        R.id.textOngoingSummary
-                );
-
-        TextView ongoingDetail =
-                view.findViewById(
-                        R.id.textOngoingDetail
-                );
-
-        TextView upcomingSummary =
-                view.findViewById(
-                        R.id.textUpcomingSummary
-                );
-
-        TextView upcomingDetail =
-                view.findViewById(
-                        R.id.textUpcomingDetail
-                );
-
-        TextView historySummary =
-                view.findViewById(
-                        R.id.textHistorySummary
-                );
-        // -----------------------------------------------------
-        // LISTING SUMMARY VIEWS
-        // -----------------------------------------------------
-
-        TextView activeListingsSummary =
-                view.findViewById(
-                        R.id.textActiveListingsSummary
-                );
-        TextView pastListingsSummary =
-                view.findViewById(
-                        R.id.textPastListingsSummary
-                );
-
-        // -----------------------------------------------------
-        // SERVICE
-        // -----------------------------------------------------
-
-        bookingActivityService = new BookingActivityService();
+        pastSummary =
+                view.findViewById(R.id.textPastListingsSummary);
 
         bookingRepository = new BookingRepository();
-
+        itemRepository = new ItemRepository();
         userRepository = new UserRepository();
 
-        itemRepository = new ItemRepository();
+        // Create the owner-management entry point.
 
-        // -----------------------------------------------------
-        // GET CURRENT USER ID
-        // -----------------------------------------------------
+        Button manageRequests = new Button(requireContext());
 
-        String currentUserId =
-                userRepository.getCurrentUserId();
+        manageRequests.setText("Manage booking requests");
+        manageRequests.setAllCaps(false);
 
+        manageRequests.setTextColor(
+                ContextCompat.getColor(
+                        requireContext(),
+                        android.R.color.white
+                )
+        );
 
-        if (currentUserId == null) {
+        manageRequests.setBackgroundResource(
+                R.drawable.button_primary
+        );
 
+        manageRequests.setBackgroundTintList(null);
+
+        LinearLayout.LayoutParams params =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        dp(54)
+                );
+
+        params.bottomMargin = dp(24);
+
+        listingsContent.addView(
+                manageRequests,
+                0,
+                params
+        );
+
+        manageRequests.setOnClickListener(
+                v -> openBookings("OWNER")
+        );
+
+        // Existing borrower navigation.
+
+        ongoingSummary.setOnClickListener(
+                v -> openBookings("ONGOING")
+        );
+
+        upcomingSummary.setOnClickListener(
+                v -> openBookings("UPCOMING")
+        );
+
+        historySummary.setOnClickListener(
+                v -> openBookings("HISTORY")
+        );
+
+        // Existing listing navigation.
+
+        activeSummary.setOnClickListener(
+                v -> openListings("ACTIVE")
+        );
+
+        pastSummary.setOnClickListener(
+                v -> openListings("PAST")
+        );
+
+        borrowingTab.setOnClickListener(
+                v -> showTab(false)
+        );
+
+        listingsTab.setOnClickListener(
+                v -> showTab(true)
+        );
+
+        showTab(false);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        if (getView() != null) {
+            refreshSummaries();
+        }
+    }
+
+    private int dp(int value) {
+        return Math.round(
+                value * getResources()
+                        .getDisplayMetrics()
+                        .density
+        );
+    }
+
+    private void openBookings(String type) {
+        Intent intent = new Intent(
+                requireContext(),
+                BookingListActivity.class
+        );
+
+        intent.putExtra("type", type);
+        startActivity(intent);
+    }
+
+    private void openListings(String type) {
+        Intent intent = new Intent(
+                requireContext(),
+                ListingListActivity.class
+        );
+
+        intent.putExtra("type", type);
+        startActivity(intent);
+    }
+
+    private void showTab(boolean listings) {
+
+        borrowingContent.setVisibility(
+                listings ? View.GONE : View.VISIBLE
+        );
+
+        listingsContent.setVisibility(
+                listings ? View.VISIBLE : View.GONE
+        );
+
+        borrowingTab.setBackgroundResource(
+                listings
+                        ? R.drawable.button_secondary
+                        : R.drawable.button_primary
+        );
+
+        listingsTab.setBackgroundResource(
+                listings
+                        ? R.drawable.button_primary
+                        : R.drawable.button_secondary
+        );
+
+        borrowingTab.setTextColor(
+                ContextCompat.getColor(
+                        requireContext(),
+                        listings
+                                ? R.color.sharely_primary
+                                : android.R.color.white
+                )
+        );
+
+        listingsTab.setTextColor(
+                ContextCompat.getColor(
+                        requireContext(),
+                        listings
+                                ? android.R.color.white
+                                : R.color.sharely_primary
+                )
+        );
+    }
+
+    private void refreshSummaries() {
+
+        String uid = userRepository.getCurrentUserId();
+
+        if (uid == null) {
             ongoingSummary.setText(
-                    "0 ongoing borrowings"
+                    "Sign in to view borrowings"
             );
 
             upcomingSummary.setText(
-                    "0 upcoming or pending"
+                    "Sign in to view bookings"
             );
 
             historySummary.setText(
-                    "0 completed, cancelled or rejected bookings"
-            );
-            activeListingsSummary.setText(
-                    "No active listings"
-            );
-            pastListingsSummary.setText(
-                    "No unavailable or past listings"
+                    "Sign in to view history"
             );
 
-        } else {
-
-
-            // -------------------------------------------------
-            // LOAD CURRENT USER BOOKINGS
-            // -------------------------------------------------
-
-            bookingRepository.getBookingsByBorrower(
-                    currentUserId,
-                    new BookingRepository.OnBookingsLoadedListener() {
-
-                        @Override
-                        public void onSuccess(
-                                List<Booking> bookings
-                        ) {
-
-
-                            // -----------------------------------------
-                            // CLASSIFY BOOKINGS
-                            // -----------------------------------------
-
-                            List<Booking> ongoingBookings =
-                                    bookingActivityService
-                                            .getOngoingBookings(
-                                                    bookings
-                                            );
-
-
-                            List<Booking> upcomingBookings =
-                                    bookingActivityService
-                                            .getUpcomingBookings(
-                                                    bookings
-                                            );
-
-
-                            List<Booking> historyBookings =
-                                    bookingActivityService
-                                            .getHistoryBookings(
-                                                    bookings
-                                            );
-
-
-                            // -----------------------------------------
-                            // DISPLAY COUNTS
-                            // -----------------------------------------
-
-                            ongoingSummary.setText(
-                                    ongoingBookings.size()
-                                            + " ongoing borrowing"
-                                            + (
-                                            ongoingBookings.size() == 1
-                                                    ? ""
-                                                    : "s"
-                                    )
-                            );
-
-
-                            upcomingSummary.setText(
-                                    upcomingBookings.size()
-                                            + " upcoming or pending"
-                            );
-
-
-                            historySummary.setText(
-                                    historyBookings.size()
-                                            + " completed, cancelled or rejected booking"
-                                            + (
-                                            historyBookings.size() == 1
-                                                    ? ""
-                                                    : "s"
-                                    )
-                            );
-                        }
-
-
-                        @Override
-                        public void onFailure(Exception e) {
-
-                            ongoingSummary.setText(
-                                    "Failed to load bookings"
-                            );
-
-                            upcomingSummary.setText(
-                                    "Failed to load bookings"
-                            );
-
-                            historySummary.setText(
-                                    "Failed to load bookings"
-                            );
-                        }
-                    }
+            activeSummary.setText(
+                    "Sign in to view listings"
             );
 
-            // -------------------------------------------------
-            // LOAD CURRENT USER LISTINGS
-            // -------------------------------------------------
-
-            itemRepository.getItemsByOwner(
-                    currentUserId,
-                    new ItemRepository.OnOwnerItemsLoadedListener() {
-
-                        @Override
-                        public void onSuccess(
-                                List<Item> items
-                        ) {
-                            int activeCount = 0;
-                            int unavailableAndPastCount = 0;
-
-                            // -----------------------------------------
-                            // CLASSIFY ITEMS
-                            // -----------------------------------------
-
-                            for (Item item : items) {
-                                if (
-                                        item.getStatus()
-                                                == ItemStatus.ACTIVE
-                                ) {
-                                    activeCount++;
-                                } else if (
-                                        item.getStatus()
-                                                == ItemStatus.UNAVAILABLE
-                                                ||
-                                                item.getStatus()
-                                                        == ItemStatus.PAST
-                                ) {
-
-                                    unavailableAndPastCount++;
-                                }
-                            }
-
-                            // -----------------------------------------
-                            // DISPLAY ACTIVE LISTINGS
-                            // -----------------------------------------
-
-                            if (activeCount == 0) {
-
-                                activeListingsSummary.setText(
-                                        "No active listings"
-                                );
-                            } else {
-                                activeListingsSummary.setText(
-                                        activeCount
-                                                + " active listing"
-                                                + (
-                                                activeCount == 1
-                                                        ? ""
-                                                        : "s"
-                                        )
-                                );
-                            }
-
-                            // -----------------------------------------
-                            // DISPLAY UNAVAILABLE / PAST LISTINGS
-                            // -----------------------------------------
-
-                            if (unavailableAndPastCount == 0) {
-                                pastListingsSummary.setText(
-                                        "No unavailable or past listings"
-                                );
-                            } else {
-                                pastListingsSummary.setText(
-                                        unavailableAndPastCount
-                                                + " unavailable or past listing"
-                                                + (
-                                                unavailableAndPastCount == 1
-                                                        ? ""
-                                                        : "s"
-                                        )
-                                );
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(
-                                Exception e
-                        ) {
-                            activeListingsSummary.setText(
-                                    "Failed to load listings"
-                            );
-                            pastListingsSummary.setText(
-                                    "Failed to load listings"
-                            );
-                        }
-                    }
+            pastSummary.setText(
+                    "Sign in to view listings"
             );
+
+            return;
         }
 
+        bookingRepository.getBookingsByBorrower(
+                uid,
+                new BookingRepository.OnBookingsLoadedListener() {
 
-        // -----------------------------------------------------
-        // DEFAULT TAB
-        // -----------------------------------------------------
+                    @Override
+                    public void onSuccess(List<Booking> bookings) {
 
-        showBorrowing(
-                borrowingTab,
-                listingsTab,
-                borrowingsContent,
-                listingsContent
+                        if (!isAdded() || getView() == null) {
+                            return;
+                        }
+
+                        BookingActivityService service =
+                                new BookingActivityService();
+
+                        int ongoing =
+                                service.getOngoingBookings(bookings).size();
+
+                        int upcoming =
+                                service.getUpcomingBookings(bookings).size();
+
+                        int history =
+                                service.getHistoryBookings(bookings).size();
+
+                        ongoingSummary.setText(
+                                ongoing
+                                        + " ongoing borrowing"
+                                        + (ongoing == 1 ? "" : "s")
+                        );
+
+                        upcomingSummary.setText(
+                                upcoming + " upcoming or pending"
+                        );
+
+                        historySummary.setText(
+                                history
+                                        + " completed, cancelled or rejected booking"
+                                        + (history == 1 ? "" : "s")
+                        );
+                    }
+
+                    @Override
+                    public void onFailure(Exception error) {
+
+                        if (!isAdded() || getView() == null) {
+                            return;
+                        }
+
+                        ongoingSummary.setText(
+                                "Unable to load borrowings"
+                        );
+
+                        upcomingSummary.setText(
+                                "Unable to load bookings"
+                        );
+
+                        historySummary.setText(
+                                "Unable to load history"
+                        );
+                    }
+                }
         );
 
-
-        // -----------------------------------------------------
-        // TAB LISTENERS
-        // -----------------------------------------------------
-
-        borrowingTab.setOnClickListener(v -> {
-
-            showBorrowing(
-                    borrowingTab,
-                    listingsTab,
-                    borrowingsContent,
-                    listingsContent
-            );
-        });
-
-
-        listingsTab.setOnClickListener(v -> {
-
-            showListings(
-                    borrowingTab,
-                    listingsTab,
-                    borrowingsContent,
-                    listingsContent
-            );
-        });
-        // -----------------------------------------------------
-        // BOOKING LIST LISTENERS
-        // -----------------------------------------------------
-
-        ongoingSummary.setOnClickListener(v -> {
-
-            Intent intent =
-                    new Intent(
-                            requireContext(),
-                            BookingListActivity.class
-                    );
-
-            intent.putExtra(
-                    "type",
-                    "ONGOING"
-            );
-
-            startActivity(
-                    intent
-            );
-        });
-
-        upcomingSummary.setOnClickListener(v -> {
-
-            Intent intent =
-                    new Intent(
-                            requireContext(),
-                            BookingListActivity.class
-                    );
-
-            intent.putExtra(
-                    "type",
-                    "UPCOMING"
-            );
-
-            startActivity(
-                    intent
-            );
-        });
-
-        historySummary.setOnClickListener(v -> {
-
-            Intent intent =
-                    new Intent(
-                            requireContext(),
-                            BookingListActivity.class
-                    );
-
-            intent.putExtra(
-                    "type",
-                    "HISTORY"
-            );
-
-            startActivity(
-                    intent
-            );
-        });
-
-        activeListingsSummary.setOnClickListener(v -> {
-
-            Intent intent =
-
-                    new Intent(
-
-                            requireContext(),
-
-                            ListingListActivity.class
-
-                    );
-
-            intent.putExtra(
-
-                    "type",
-
-                    "ACTIVE"
-
-            );
-
-            startActivity(
-
-                    intent
-
-            );
-
-        });
-
-        pastListingsSummary.setOnClickListener(v -> {
-
-            Intent intent =
-
-                    new Intent(
-
-                            requireContext(),
-
-                            ListingListActivity.class
-
-                    );
-
-            intent.putExtra(
-
-                    "type",
-
-                    "PAST"
-
-            );
-
-            startActivity(
-
-                    intent
-
-            );
-
-        });
-    }
-
-
-    // =========================================================
-    // SHOW BORROWING
-    // =========================================================
-
-    private void showBorrowing(
-            TextView borrowingTab,
-            TextView listingsTab,
-            LinearLayout borrowingsContent,
-            LinearLayout listingsContent
-    ) {
-
-        borrowingsContent.setVisibility(
-                View.VISIBLE
-        );
-
-        listingsContent.setVisibility(
-                View.GONE
-        );
-
-
-        borrowingTab.setBackgroundResource(
-                R.drawable.button_primary
-        );
-
-        borrowingTab.setTextColor(
-                ContextCompat.getColor(
-                        requireContext(),
-                        android.R.color.white
-                )
-        );
-
-
-        listingsTab.setBackgroundResource(
-                R.drawable.button_secondary
-        );
-
-        listingsTab.setTextColor(
-                ContextCompat.getColor(
-                        requireContext(),
-                        R.color.sharely_primary
-                )
-        );
-    }
-
-
-    // =========================================================
-    // SHOW LISTINGS
-    // =========================================================
-
-    private void showListings(
-            TextView borrowingTab,
-            TextView listingsTab,
-            LinearLayout borrowingsContent,
-            LinearLayout listingsContent
-    ) {
-
-        borrowingsContent.setVisibility(
-                View.GONE
-        );
-
-        listingsContent.setVisibility(
-                View.VISIBLE
-        );
-
-
-        listingsTab.setBackgroundResource(
-                R.drawable.button_primary
-        );
-
-        listingsTab.setTextColor(
-                ContextCompat.getColor(
-                        requireContext(),
-                        android.R.color.white
-                )
-        );
-
-
-        borrowingTab.setBackgroundResource(
-                R.drawable.button_secondary
-        );
-
-        borrowingTab.setTextColor(
-                ContextCompat.getColor(
-                        requireContext(),
-                        R.color.sharely_primary
-                )
+        itemRepository.getItemsByOwner(
+                uid,
+                new ItemRepository.OnOwnerItemsLoadedListener() {
+
+                    @Override
+                    public void onSuccess(List<Item> items) {
+
+                        if (!isAdded() || getView() == null) {
+                            return;
+                        }
+
+                        int active = 0;
+                        int other = 0;
+
+                        for (Item item : items) {
+
+                            if (item.getStatus() == ItemStatus.ACTIVE) {
+                                active++;
+
+                            } else if (
+                                    item.getStatus() == ItemStatus.UNAVAILABLE
+                                            || item.getStatus() == ItemStatus.PAST
+                            ) {
+                                other++;
+                            }
+                        }
+
+                        activeSummary.setText(
+                                active == 0
+                                        ? "No active listings"
+                                        : active
+                                          + " active listing"
+                                          + (active == 1 ? "" : "s")
+                        );
+
+                        pastSummary.setText(
+                                other == 0
+                                        ? "No unavailable or past listings"
+                                        : other
+                                          + " unavailable or past listing"
+                                          + (other == 1 ? "" : "s")
+                        );
+                    }
+
+                    @Override
+                    public void onFailure(Exception error) {
+
+                        if (!isAdded() || getView() == null) {
+                            return;
+                        }
+
+                        activeSummary.setText(
+                                "Unable to load listings"
+                        );
+
+                        pastSummary.setText(
+                                "Unable to load listings"
+                        );
+                    }
+                }
         );
     }
 }
