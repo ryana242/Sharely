@@ -1,6 +1,7 @@
+
 package com.example.sharely;
 
-import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -9,625 +10,764 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
-
 import com.example.sharely.data.BookingRepository;
 import com.example.sharely.data.ItemRepository;
 import com.example.sharely.data.UserRepository;
-
+import com.example.sharely.enums.BookingStatus;
 import com.example.sharely.model.Booking;
-
 import com.example.sharely.model.Item;
 import com.example.sharely.service.BookingActivityService;
+import com.google.android.material.button.MaterialButton;
+import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
-
+import java.util.Locale;
+import java.util.Map;
 
 public class BookingListActivity extends AppCompatActivity {
 
-    // =========================================================
-    // VIEWS
-    // =========================================================
+    private LinearLayout container;
+    private TextView titleView;
+    private TextView countView;
 
-    private LinearLayout bookingsContainer;
-
-
-    // =========================================================
-    // REPOSITORIES
-    // =========================================================
+    private final BookingActivityService activityService =
+            new BookingActivityService();
 
     private BookingRepository bookingRepository;
-
+    private ItemRepository itemRepository;
     private UserRepository userRepository;
 
-    private ItemRepository itemRepository;
+    private String type;
+    private int loadVersion;
 
-
-    // =========================================================
-    // SERVICE
-    // =========================================================
-
-    private BookingActivityService bookingActivityService;
-
+    private int dp(int value) {
+        return Math.round(
+                value * getResources().getDisplayMetrics().density
+        );
+    }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle state) {
+        super.onCreate(state);
+        setContentView(R.layout.activity_booking_list);
 
-        super.onCreate(savedInstanceState);
+        container = findViewById(R.id.bookingsContainer);
+        titleView = findViewById(R.id.textBookingListTitle);
+        countView = findViewById(R.id.textBookingCount);
 
-        setContentView(
-                R.layout.activity_booking_list
-        );
+        bookingRepository = new BookingRepository();
+        itemRepository = new ItemRepository();
+        userRepository = new UserRepository();
 
+        findViewById(R.id.buttonBack)
+                .setOnClickListener(v -> finish());
 
-        // =====================================================
-        // VIEWS
-        // =====================================================
-
-        TextView title =
-                findViewById(
-                        R.id.textBookingListTitle
-                );
-
-
-        TextView count =
-                findViewById(
-                        R.id.textBookingCount
-                );
-
-
-        Button backButton =
-                findViewById(
-                        R.id.buttonBack
-                );
-
-
-        bookingsContainer =
-                findViewById(
-                        R.id.bookingsContainer
-                );
-
-
-        // =====================================================
-        // INITIALISE REPOSITORIES
-        // =====================================================
-
-        bookingRepository =
-                new BookingRepository();
-
-
-        userRepository =
-                new UserRepository();
-
-
-        itemRepository =
-                new ItemRepository();
-
-
-        // =====================================================
-        // INITIALISE SERVICE
-        // =====================================================
-
-        bookingActivityService =
-                new BookingActivityService();
-
-
-        // =====================================================
-        // GET BOOKING TYPE FROM ACTIVITY FRAGMENT
-        // =====================================================
-
-        String type =
-                getIntent().getStringExtra(
-                        "type"
-                );
-
-
-        // If no type was passed,
-        // show ongoing bookings by default.
+        type = getIntent().getStringExtra("type");
 
         if (type == null) {
-
-            type =
-                    "ONGOING";
+            type = "ONGOING";
         }
-
-
-        // =====================================================
-        // SET PAGE TITLE
-        // =====================================================
 
         switch (type) {
+            case "OWNER":
+                titleView.setText("Booking requests");
+                break;
 
             case "UPCOMING":
-
-                title.setText(
-                        "Upcoming & pending"
-                );
-
+                titleView.setText("Upcoming & pending");
                 break;
-
 
             case "HISTORY":
-
-                title.setText(
-                        "History"
-                );
-
+                titleView.setText("History");
                 break;
-
-
-            case "ONGOING":
 
             default:
-
-                title.setText(
-                        "Ongoing"
-                );
-
+                titleView.setText("Ongoing");
                 break;
         }
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadBookings();
+    }
 
-        // =====================================================
-        // BACK BUTTON
-        // =====================================================
+    private boolean isCurrent(int token) {
+        return token == loadVersion
+                && !isFinishing()
+                && !isDestroyed();
+    }
 
-        backButton.setOnClickListener(
-                v -> finish()
-        );
+    private void loadBookings() {
 
+        int token = ++loadVersion;
 
-        // =====================================================
-        // GET CURRENT USER
-        // =====================================================
+        container.removeAllViews();
+        countView.setText("Loading...");
 
-        String currentUserId =
-                userRepository
-                        .getCurrentUserId();
+        String uid = userRepository.getCurrentUserId();
 
-
-        if (currentUserId == null) {
-
-            Toast.makeText(
-                    this,
-                    "Please log in first",
-                    Toast.LENGTH_SHORT
-            ).show();
-
-
+        if (uid == null) {
+            showError("Please sign in to view bookings");
             return;
         }
 
-
-        // =====================================================
-        // LOAD BOOKINGS
-        // =====================================================
-
-        String finalType =
-                type;
-
+        if ("OWNER".equals(type)) {
+            loadOwnerBookings(uid, token);
+            return;
+        }
 
         bookingRepository.getBookingsByBorrower(
-
-                currentUserId,
-
+                uid,
                 new BookingRepository.OnBookingsLoadedListener() {
 
                     @Override
-                    public void onSuccess(
-                            List<Booking> bookings
-                    ) {
+                    public void onSuccess(List<Booking> all) {
+                        if (!isCurrent(token)) return;
 
-                        // =====================================
-                        // FILTER BOOKINGS
-                        // =====================================
+                        List<Booking> visible;
 
-                        List<Booking> filteredBookings;
+                        if ("UPCOMING".equals(type)) {
+                            visible = activityService.getUpcomingBookings(all);
 
+                        } else if ("HISTORY".equals(type)) {
+                            visible = activityService.getHistoryBookings(all);
 
-                        switch (finalType) {
-
-                            // ---------------------------------
-                            // UPCOMING
-                            // PENDING + ACCEPTED
-                            // ---------------------------------
-
-                            case "UPCOMING":
-
-                                filteredBookings =
-                                        bookingActivityService
-                                                .getUpcomingBookings(
-                                                        bookings
-                                                );
-
-                                break;
-
-
-                            // ---------------------------------
-                            // HISTORY
-                            // COMPLETED + CANCELLED + REJECTED
-                            // ---------------------------------
-
-                            case "HISTORY":
-
-                                filteredBookings =
-                                        bookingActivityService
-                                                .getHistoryBookings(
-                                                        bookings
-                                                );
-
-                                break;
-
-
-                            // ---------------------------------
-                            // ONGOING
-                            // ACTIVE
-                            // ---------------------------------
-
-                            case "ONGOING":
-
-                            default:
-
-                                filteredBookings =
-                                        bookingActivityService
-                                                .getOngoingBookings(
-                                                        bookings
-                                                );
-
-                                break;
+                        } else {
+                            visible = activityService.getOngoingBookings(all);
                         }
 
-
-                        // =====================================
-                        // DISPLAY BOOKING COUNT
-                        // =====================================
-
-                        count.setText(
-
-                                filteredBookings.size()
-
-                                        + " booking"
-
-                                        + (
-                                        filteredBookings.size() == 1
-                                                ? ""
-                                                : "s"
-                                )
-                        );
-
-
-                        // =====================================
-                        // DISPLAY BOOKING CARDS
-                        // =====================================
-
-                        displayBookings(
-                                filteredBookings
-                        );
+                        renderList(visible, null, false);
                     }
 
-
                     @Override
-                    public void onFailure(
-                            Exception e
-                    ) {
-
-                        Toast.makeText(
-                                BookingListActivity.this,
-                                "Failed to load bookings",
-                                Toast.LENGTH_SHORT
-                        ).show();
+                    public void onFailure(Exception e) {
+                        if (isCurrent(token)) {
+                            showError(
+                                    "Unable to load bookings: "
+                                            + e.getMessage()
+                            );
+                        }
                     }
                 }
         );
     }
 
+    private void loadOwnerBookings(String uid, int token) {
 
-    // =========================================================
-    // DISPLAY BOOKINGS
-    // =========================================================
+        itemRepository.getItemsByOwner(
+                uid,
+                new ItemRepository.OnOwnerItemsLoadedListener() {
 
-    private void displayBookings(
-            List<Booking> bookings
+                    @Override
+                    public void onSuccess(List<Item> items) {
+                        if (!isCurrent(token)) return;
+
+                        Map<String, Item> byId = new HashMap<>();
+
+                        if (items != null) {
+                            for (Item item : items) {
+
+                                if (item != null
+                                        && item.getItemId() != null) {
+
+                                    byId.put(
+                                            item.getItemId(),
+                                            item
+                                    );
+                                }
+                            }
+                        }
+
+                        if (byId.isEmpty()) {
+                            renderList(
+                                    Collections.emptyList(),
+                                    byId,
+                                    true
+                            );
+                            return;
+                        }
+
+                        List<Booking> all = new ArrayList<>();
+
+                        int[] remaining = {byId.size()};
+                        boolean[] failed = {false};
+
+                        for (String id : byId.keySet()) {
+
+                            bookingRepository.getBookingsByItem(
+                                    id,
+                                    new BookingRepository.OnBookingsLoadedListener() {
+
+                                        @Override
+                                        public void onSuccess(
+                                                List<Booking> bookings
+                                        ) {
+                                            if (!isCurrent(token) || failed[0]) {
+                                                return;
+                                            }
+
+                                            all.addAll(bookings);
+
+                                            if (--remaining[0] == 0) {
+
+                                                all.sort((a, b) -> {
+
+                                                    boolean aPending =
+                                                            a.getStatus()
+                                                                    == BookingStatus.PENDING;
+
+                                                    boolean bPending =
+                                                            b.getStatus()
+                                                                    == BookingStatus.PENDING;
+
+                                                    if (aPending != bPending) {
+                                                        return aPending ? -1 : 1;
+                                                    }
+
+                                                    return Long.compare(
+                                                            b.getBookingSlot()
+                                                                    .getStartTime(),
+                                                            a.getBookingSlot()
+                                                                    .getStartTime()
+                                                    );
+                                                });
+
+                                                renderList(all, byId, true);
+                                            }
+                                        }
+
+                                        @Override
+                                        public void onFailure(Exception e) {
+
+                                            if (!isCurrent(token) || failed[0]) {
+                                                return;
+                                            }
+
+                                            failed[0] = true;
+
+                                            showError(
+                                                    "Could not load owner requests: "
+                                                            + e.getMessage()
+                                            );
+                                        }
+                                    }
+                            );
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        if (isCurrent(token)) {
+                            showError(
+                                    "Could not load listings: "
+                                            + e.getMessage()
+                            );
+                        }
+                    }
+                }
+        );
+    }
+
+    private void renderList(
+            List<Booking> bookings,
+            Map<String, Item> knownItems,
+            boolean ownerMode
     ) {
 
-        // Remove old cards
+        container.removeAllViews();
 
-        bookingsContainer
-                .removeAllViews();
+        int pending = 0;
 
+        for (Booking booking : bookings) {
+            if (booking.getStatus() == BookingStatus.PENDING) {
+                pending++;
+            }
+        }
 
-        // =====================================================
-        // NO BOOKINGS
-        // =====================================================
+        countView.setText(
+                ownerMode
+                        ? pending + " pending • "
+                          + bookings.size() + " total requests"
+                        : bookings.size()
+                          + (bookings.size() == 1
+                             ? " booking"
+                             : " bookings")
+        );
 
-        if (bookings == null
-                || bookings.isEmpty()) {
+        if (bookings.isEmpty()) {
 
+            TextView empty = new TextView(this);
 
-            TextView emptyText =
-                    new TextView(this);
-
-
-            emptyText.setText(
-                    "No bookings found."
+            empty.setText(
+                    ownerMode
+                            ? "No requests for your listings yet."
+                            : "No bookings found."
             );
 
-
-            emptyText.setTextSize(
-                    16
+            empty.setTextColor(
+                    getColor(R.color.sharely_text_secondary)
             );
 
+            empty.setTextSize(16);
 
-            emptyText.setPadding(
+            empty.setPadding(
                     0,
-                    40,
+                    dp(32),
                     0,
-                    40
+                    dp(32)
             );
 
-
-            bookingsContainer.addView(
-                    emptyText
-            );
-
-
+            container.addView(empty);
             return;
         }
 
-
-        // =====================================================
-        // CREATE CARD FOR EACH BOOKING
-        // =====================================================
-
         for (Booking booking : bookings) {
 
-            addBookingCard(
-                    booking
-            );
+            Item item = knownItems == null
+                    ? null
+                    : knownItems.get(booking.getItemId());
+
+            addCard(booking, item, ownerMode);
         }
     }
 
+    private String date(long millis) {
 
-    // =========================================================
-    // ADD BOOKING CARD
-    // =========================================================
+        return new SimpleDateFormat(
+                "dd MMM yyyy, h:mm a",
+                Locale.getDefault()
+        ).format(new Date(millis));
+    }
 
-    private void addBookingCard(
-            Booking booking
+    private void addCard(
+            Booking booking,
+            Item item,
+            boolean ownerMode
     ) {
 
-        // =====================================================
-        // CREATE CARD
-        // =====================================================
-
-        View card =
-                getLayoutInflater().inflate(
-                        R.layout.item_card,
-                        bookingsContainer,
-                        false
-                );
-
-
-        // =====================================================
-        // CARD VIEWS
-        // =====================================================
-
-        ImageView itemImageView =
-                card.findViewById(
-                        R.id.imageItem
-                );
-
-
-        TextView itemNameText =
-                card.findViewById(
-                        R.id.textItemName
-                );
-
-
-        TextView itemInfoText =
-                card.findViewById(
-                        R.id.textItemInfo
-                );
-
-
-        TextView itemPriceText =
-                card.findViewById(
-                        R.id.textItemPrice
-                );
-
-
-        Button viewDetailsButton =
-                card.findViewById(
-                        R.id.buttonViewDetails
-                );
-        viewDetailsButton.setVisibility(
-                View.GONE
+        View card = getLayoutInflater().inflate(
+                R.layout.item_card,
+                container,
+                false
         );
 
-        // =====================================================
-        // TEMPORARY CONTENT
-        // =====================================================
+        ImageView image =
+                card.findViewById(R.id.imageItem);
 
-        itemNameText.setText(
-                "Loading..."
+        TextView name =
+                card.findViewById(R.id.textItemName);
+
+        TextView info =
+                card.findViewById(R.id.textItemInfo);
+
+        TextView status =
+                card.findViewById(R.id.textItemPrice);
+
+        Button details =
+                card.findViewById(R.id.buttonViewDetails);
+
+        details.setVisibility(View.GONE);
+
+        status.setText(booking.getStatus().name());
+
+        name.setText(
+                item == null
+                        ? "Loading item..."
+                        : item.getItemName()
         );
 
+        String dates =
+                "Start: "
+                        + date(booking.getBookingSlot().getStartTime())
+                        + "\nReturn: "
+                        + date(booking.getBookingSlot().getEndTime());
 
-        itemInfoText.setText(
-                booking
-                        .getStatus()
-                        .name()
-        );
+        if (ownerMode) {
 
+            info.setText(
+                    "Borrower: Loading name...\n" + dates
+            );
 
-        itemPriceText.setText(
-                ""
-        );
+            int token = loadVersion;
 
+            FirebaseFirestore.getInstance()
+                    .collection("users")
+                    .document(booking.getBorrowerId())
+                    .get()
+                    .addOnSuccessListener(doc -> {
 
-        // =====================================================
-        // ADD CARD
-        // =====================================================
+                        if (!isCurrent(token)) return;
 
-        bookingsContainer.addView(
-                card
-        );
+                        String person = doc.getString("name");
 
+                        if (person == null
+                                || person.trim().isEmpty()) {
+                            person = "Sharely user";
+                        }
 
-        // =====================================================
-        // LOAD ITEM
-        // =====================================================
+                        info.setText(
+                                "Borrower: "
+                                        + person.trim()
+                                        + "\n"
+                                        + dates
+                        );
+                    })
+                    .addOnFailureListener(error -> {
 
-        itemRepository.getItem(
-
-                booking.getItemId(),
-
-                new ItemRepository.OnItemLoadedListener() {
-
-                    @Override
-                    public void onSuccess(
-                            Item item
-                    ) {
-
-                        // =====================================
-                        // ITEM DATA
-                        // =====================================
-
-                        String name =
-                                item.getItemName();
-
-
-                        String location =
-                                item.getLocation();
-
-
-                        double price =
-                                item.getPrice();
-
-
-                        String description =
-                                item.getDescription();
-
-
-                        ArrayList<String> imageUrls =
-                                item.getImageUrls();
-
-
-                        // =====================================
-                        // NAME
-                        // =====================================
-
-                        if (name != null
-                                && !name.isEmpty()) {
-
-                            itemNameText.setText(
-                                    name
-                            );
-
-                        } else {
-
-                            itemNameText.setText(
-                                    "Unnamed item"
+                        if (isCurrent(token)) {
+                            info.setText(
+                                    "Borrower: Sharely user\n" + dates
                             );
                         }
+                    });
 
+        } else {
+            info.setText(dates);
+        }
 
-                        // =====================================
-                        // BOOKING STATUS + LOCATION
-                        // =====================================
+        container.addView(card);
 
-                        String info =
-                                booking
-                                        .getStatus()
-                                        .name();
+        if (item != null) {
 
+            showPhoto(image, item);
 
-                        if (location != null
-                                && !location.isEmpty()) {
+        } else {
 
-                            info =
-                                    info
-                                            + " • "
-                                            + location;
+            int token = loadVersion;
+
+            itemRepository.getItem(
+                    booking.getItemId(),
+                    new ItemRepository.OnItemLoadedListener() {
+
+                        @Override
+                        public void onSuccess(Item loaded) {
+
+                            if (isCurrent(token)
+                                    && loaded != null) {
+
+                                name.setText(loaded.getItemName());
+                                showPhoto(image, loaded);
+                            }
                         }
 
+                        @Override
+                        public void onFailure(Exception e) {
 
-                        itemInfoText.setText(
-                                info
-                        );
-
-
-                        // =====================================
-                        // PRICE
-                        // =====================================
-
-                        itemPriceText.setText(
-                                "$"
-                                        + price
-                                        + " / day"
-                        );
-
-
-                        // =====================================
-                        // IMAGE
-                        // =====================================
-
-                        if (imageUrls != null
-                                && !imageUrls.isEmpty()) {
-
-                            Glide.with(
-                                            BookingListActivity.this
-                                    )
-
-                                    .load(
-                                            imageUrls.get(0)
-                                    )
-
-                                    .fitCenter()
-
-                                    .into(
-                                            itemImageView
-                                    );
+                            if (isCurrent(token)) {
+                                name.setText("Item unavailable");
+                            }
                         }
-
-
-                        // =====================================
-                        // VIEW DETAILS
-                        // =====================================
-
                     }
+            );
+        }
 
+        // Add actions according to user role and booking status.
 
-                    @Override
-                    public void onFailure(
-                            Exception e
-                    ) {
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
 
-                        itemNameText.setText(
-                                "Item unavailable"
-                        );
+        BookingStatus current = booking.getStatus();
+        long now = System.currentTimeMillis();
 
+        if (ownerMode && current == BookingStatus.PENDING) {
 
-                        itemInfoText.setText(
-                                booking
-                                        .getStatus()
-                                        .name()
-                        );
+            addAction(
+                    actions,
+                    "Accept",
+                    true,
+                    () -> confirmAction(
+                            booking,
+                            "Accept booking?",
+                            "Confirm these borrowing dates?",
+                            "Accept",
+                            actions,
+                            cb -> bookingRepository.decideBooking(
+                                    booking.getBookingId(),
+                                    true,
+                                    cb
+                            )
+                    )
+            );
 
+            addAction(
+                    actions,
+                    "Reject",
+                    false,
+                    () -> confirmAction(
+                            booking,
+                            "Reject booking?",
+                            "Reject this borrower's request?",
+                            "Reject",
+                            actions,
+                            cb -> bookingRepository.decideBooking(
+                                    booking.getBookingId(),
+                                    false,
+                                    cb
+                            )
+                    )
+            );
 
-                        itemPriceText.setText(
-                                ""
-                        );
+        } else if (ownerMode
+                && current == BookingStatus.ACCEPTED
+                && now >= booking.getBookingSlot().getStartTime()
+                && now < booking.getBookingSlot().getEndTime()) {
 
+            addAction(
+                    actions,
+                    "Mark as started",
+                    true,
+                    () -> confirmAction(
+                            booking,
+                            "Start borrowing?",
+                            "Confirm the borrower has collected this item.",
+                            "Start",
+                            actions,
+                            cb -> bookingRepository.advanceBooking(
+                                    booking.getBookingId(),
+                                    cb
+                            )
+                    )
+            );
 
-                        viewDetailsButton.setEnabled(
-                                false
-                        );
-                    }
-                }
+        } else if (ownerMode
+                && current == BookingStatus.ACTIVE) {
+
+            addAction(
+                    actions,
+                    "Mark as returned",
+                    true,
+                    () -> confirmAction(
+                            booking,
+                            "Complete booking?",
+                            "Confirm the item has been returned.",
+                            "Complete",
+                            actions,
+                            cb -> bookingRepository.advanceBooking(
+                                    booking.getBookingId(),
+                                    cb
+                            )
+                    )
+            );
+
+        } else if (!ownerMode
+                && (current == BookingStatus.PENDING
+                || (current == BookingStatus.ACCEPTED
+                && now < booking.getBookingSlot().getStartTime()))) {
+
+            addAction(
+                    actions,
+                    "Cancel request",
+                    false,
+                    () -> confirmAction(
+                            booking,
+                            "Cancel booking?",
+                            "Cancel this request? Accepted reservations will be released.",
+                            "Cancel booking",
+                            actions,
+                            cb -> bookingRepository.cancelBooking(
+                                    booking.getBookingId(),
+                                    cb
+                            )
+                    )
+            );
+        }
+
+        if (actions.getChildCount() > 0) {
+            ((LinearLayout) card).addView(actions);
+        }
+    }
+
+    private void showPhoto(ImageView image, Item item) {
+
+        if (item.getImageUrls() != null
+                && !item.getImageUrls().isEmpty()) {
+
+            Glide.with(this)
+                    .load(item.getImageUrls().get(0))
+                    .fitCenter()
+                    .into(image);
+        }
+    }
+
+    private void addAction(
+            LinearLayout actions,
+            String text,
+            boolean primary,
+            Runnable handler
+    ) {
+
+        MaterialButton button = new MaterialButton(this);
+
+        button.setText(text);
+        button.setAllCaps(false);
+        button.setTextSize(14);
+
+        button.setMinHeight(0);
+        button.setMinimumHeight(0);
+
+        button.setCornerRadius(dp(12));
+
+        int green = getColor(R.color.sharely_primary);
+
+        button.setBackgroundTintList(
+                ColorStateList.valueOf(
+                        primary ? green : 0xFFFFFFFF
+                )
         );
+
+        button.setTextColor(
+                primary ? 0xFFFFFFFF : green
+        );
+
+        button.setStrokeColor(
+                ColorStateList.valueOf(green)
+        );
+
+        button.setStrokeWidth(
+                primary ? 0 : dp(1)
+        );
+
+        LinearLayout.LayoutParams params =
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(54),
+                        1f
+                );
+
+        params.setMargins(
+                dp(4),
+                dp(12),
+                dp(4),
+                0
+        );
+
+        actions.addView(button, params);
+
+        button.setOnClickListener(
+                v -> handler.run()
+        );
+    }
+
+    private interface StatusAction {
+
+        void run(
+                BookingRepository.OnBookingStatusUpdatedListener callback
+        );
+    }
+
+    private void confirmAction(
+            Booking booking,
+            String title,
+            String message,
+            String label,
+            LinearLayout actions,
+            StatusAction operation
+    ) {
+
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setNegativeButton("Back", null)
+                .setPositiveButton(
+                        label,
+                        (dialog, which) -> {
+
+                            // Prevent duplicate actions while Firestore saves.
+
+                            for (int i = 0;
+                                 i < actions.getChildCount();
+                                 i++) {
+
+                                actions.getChildAt(i).setEnabled(false);
+                            }
+
+                            operation.run(
+                                    new BookingRepository.OnBookingStatusUpdatedListener() {
+
+                                        @Override
+                                        public void onSuccess() {
+
+                                            if (isFinishing()
+                                                    || isDestroyed()) {
+                                                return;
+                                            }
+
+                                            Toast.makeText(
+                                                    BookingListActivity.this,
+                                                    "Booking updated",
+                                                    Toast.LENGTH_SHORT
+                                            ).show();
+
+                                            loadBookings();
+                                        }
+
+                                        @Override
+                                        public void onFailure(Exception e) {
+
+                                            if (isFinishing()
+                                                    || isDestroyed()) {
+                                                return;
+                                            }
+
+                                            for (int i = 0;
+                                                 i < actions.getChildCount();
+                                                 i++) {
+
+                                                actions.getChildAt(i)
+                                                        .setEnabled(true);
+                                            }
+
+                                            Toast.makeText(
+                                                    BookingListActivity.this,
+                                                    "Action failed: "
+                                                            + e.getMessage(),
+                                                    Toast.LENGTH_LONG
+                                            ).show();
+                                        }
+                                    }
+                            );
+                        }
+                )
+                .show();
+    }
+
+    private void showError(String message) {
+
+        container.removeAllViews();
+        countView.setText("Unable to load");
+
+        TextView error = new TextView(this);
+
+        error.setText(message);
+
+        error.setTextColor(
+                getColor(R.color.sharely_text_primary)
+        );
+
+        error.setPadding(
+                0,
+                dp(24),
+                0,
+                dp(24)
+        );
+
+        container.addView(error);
+
+        Toast.makeText(
+                this,
+                message,
+                Toast.LENGTH_LONG
+        ).show();
     }
 }
