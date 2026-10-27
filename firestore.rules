@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -51,12 +50,12 @@ service cloud.firestore {
         && entry.startTime < entry.endTime;
     }
 
-    // Acceptance and reservation creation must be atomic.
+    // A booking can become ACCEPTED only when its reservation
+    // is appended to the item in the SAME atomic write.
     function ledgerAppendsBooking(itemId, bookingId, data) {
       let before = ledger(get(itemPath(itemId)).data);
       let after = ledger(getAfter(itemPath(itemId)).data);
       let entry = reservation(bookingId, data);
-
       return before is list
         && after is list
         && before.size() < 150
@@ -64,12 +63,12 @@ service cloud.firestore {
         && after == before.concat([entry]);
     }
 
-    // Cancellation/completion must remove the correct reservation.
+    // Cancellation/completion must remove exactly that booking's
+    // existing reservation in the SAME atomic write.
     function ledgerRemovesBooking(itemId, bookingId, data) {
       let before = ledger(get(itemPath(itemId)).data);
       let after = ledger(getAfter(itemPath(itemId)).data);
       let entry = reservation(bookingId, data);
-
       return before is list
         && after is list
         && entry in before
@@ -79,7 +78,6 @@ service cloud.firestore {
 
     function listingAllowsBooking(itemId, data) {
       let item = get(itemPath(itemId)).data;
-
       return item.status == 'ACTIVE'
         && item.availabilityStart is int
         && item.availabilityEnd is int
@@ -88,13 +86,12 @@ service cloud.firestore {
         && data.startTime > request.time.toMillis();
     }
 
-    // Verify the corresponding booking changed from
-    // PENDING to ACCEPTED in this same transaction.
+    // Item-ledger writes are separately checked against the
+    // booking document's BEFORE and AFTER states.
     function validAppend(itemId, before, after) {
       let entry = after[before.size()];
       let oldBooking = get(bookingPath(entry.bookingId)).data;
       let newBooking = getAfter(bookingPath(entry.bookingId)).data;
-
       return after.size() == before.size() + 1
         && after == before.concat([entry])
         && validReservation(entry)
@@ -107,14 +104,11 @@ service cloud.firestore {
         && listingAllowsBooking(itemId, oldBooking);
     }
 
-    // Verify the corresponding booking changed to
-    // CANCELLED or COMPLETED in the same transaction.
     function validRemoval(itemId, before, after) {
       let removed = before.removeAll(after);
       let entry = removed[0];
       let oldBooking = get(bookingPath(entry.bookingId)).data;
       let newBooking = getAfter(bookingPath(entry.bookingId)).data;
-
       return before.size() == after.size() + 1
         && removed.size() == 1
         && after == before.removeAll([entry])
@@ -123,25 +117,17 @@ service cloud.firestore {
         && oldBooking.startTime == entry.startTime
         && oldBooking.endTime == entry.endTime
         && (
-          (
-            oldBooking.status == 'ACCEPTED'
+          (oldBooking.status == 'ACCEPTED'
             && newBooking.status == 'CANCELLED'
             && isUser(oldBooking.borrowerId)
-            && oldBooking.startTime > request.time.toMillis()
-          )
+            && oldBooking.startTime > request.time.toMillis())
           ||
-          (
-            oldBooking.status == 'ACTIVE'
+          (oldBooking.status == 'ACTIVE'
             && newBooking.status == 'COMPLETED'
             && ownsItem(itemId)
-            && oldBooking.startTime <= request.time.toMillis()
-          )
+            && oldBooking.startTime <= request.time.toMillis())
         );
     }
-
-    // -------------------------
-    // USERS
-    // -------------------------
 
     match /users/{userId} {
       allow read: if signedIn();
@@ -171,10 +157,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // -------------------------
-    // ITEMS
-    // -------------------------
-
     match /items/{itemId} {
       allow read: if signedIn();
 
@@ -185,8 +167,9 @@ service cloud.firestore {
         && ledger(request.resource.data) is list
         && ledger(request.resource.data).size() == 0;
 
+      // Ordinary owner edits cannot touch the reservation ledger.
+      // Owners cannot invalidate an accepted booking by editing dates.
       allow update: if (
-        // Normal listing modification by owner.
         signedIn()
         && resource.data.ownerId == request.auth.uid
         && request.resource.data.ownerId == resource.data.ownerId
@@ -205,7 +188,7 @@ service cloud.firestore {
             ])
         )
       ) || (
-        // Atomic booking transaction: only ledger changes.
+        // Booking transaction: reservation ledger and nothing else.
         signedIn()
         && request.resource.data.diff(resource.data)
           .affectedKeys().hasOnly(['acceptedReservations'])
@@ -239,13 +222,10 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // -------------------------
-    // BOOKINGS
-    // -------------------------
-
     match /bookings/{bookingId} {
-
-      // Only borrowers and item owners can read full bookings.
+      // Only the borrower or listing owner may read full booking data.
+      // Borrower queries by itemId for OTHER users' bookings must be
+      // redesigned before these rules are deployed.
       allow get, list: if signedIn()
         && (
           resource.data.borrowerId == request.auth.uid
@@ -267,8 +247,7 @@ service cloud.firestore {
         && request.resource.data.itemId.size() > 0
         && request.resource.data.startTime is int
         && request.resource.data.endTime is int
-        && request.resource.data.startTime
-          < request.resource.data.endTime
+        && request.resource.data.startTime < request.resource.data.endTime
         && request.resource.data.status == 'PENDING'
         && exists(itemPath(request.resource.data.itemId))
         && !ownsItem(request.resource.data.itemId)
@@ -281,42 +260,32 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data)
           .affectedKeys().hasOnly(['status'])
         && (
-
-          // PENDING -> ACCEPTED: owner accepts and reserves.
+          // Owner accepts and atomically reserves the dates.
           (
             resource.data.status == 'PENDING'
             && request.resource.data.status == 'ACCEPTED'
             && ownsItem(resource.data.itemId)
-            && listingAllowsBooking(
-              resource.data.itemId,
-              resource.data
-            )
+            && listingAllowsBooking(resource.data.itemId, resource.data)
             && ledgerAppendsBooking(
               resource.data.itemId, bookingId, resource.data
             )
           )
-
           ||
-
-          // PENDING -> REJECTED: owner rejects.
+          // Owner rejects a pending request (no ledger update).
           (
             resource.data.status == 'PENDING'
             && request.resource.data.status == 'REJECTED'
             && ownsItem(resource.data.itemId)
           )
-
           ||
-
-          // PENDING -> CANCELLED: borrower cancels.
+          // Borrower cancels before acceptance.
           (
             resource.data.status == 'PENDING'
             && request.resource.data.status == 'CANCELLED'
             && isUser(resource.data.borrowerId)
           )
-
           ||
-
-          // ACCEPTED -> CANCELLED: borrower cancels before pickup.
+          // Borrower cancels an accepted booking before pickup.
           (
             resource.data.status == 'ACCEPTED'
             && request.resource.data.status == 'CANCELLED'
@@ -326,10 +295,8 @@ service cloud.firestore {
               resource.data.itemId, bookingId, resource.data
             )
           )
-
           ||
-
-          // ACCEPTED -> ACTIVE: owner confirms pickup.
+          // Item owner confirms pickup during the booked period.
           (
             resource.data.status == 'ACCEPTED'
             && request.resource.data.status == 'ACTIVE'
@@ -339,10 +306,8 @@ service cloud.firestore {
             && reservation(bookingId, resource.data)
               in ledger(get(itemPath(resource.data.itemId)).data)
           )
-
           ||
-
-          // ACTIVE -> COMPLETED: owner confirms return.
+          // Item owner confirms return and releases the reservation.
           (
             resource.data.status == 'ACTIVE'
             && request.resource.data.status == 'COMPLETED'
@@ -358,18 +323,119 @@ service cloud.firestore {
     }
 
     // -------------------------
-    // NOTIFICATIONS
+    // CONVERSATIONS / MESSAGES
     // -------------------------
 
-    match /notifications/{notificationId} {
+    function conversationPath(conversationId) {
+      return /databases/$(database)/documents/conversations/$(conversationId);
+    }
 
+    function conversationMember(data) {
+      return signedIn()
+        && request.auth.uid in data.participantIds;
+    }
+
+    match /conversations/{conversationId} {
+      allow get, list: if conversationMember(resource.data);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'conversationId', 'itemId', 'itemName', 'ownerId',
+          'borrowerId', 'participantIds', 'createdAt', 'updatedAt',
+          'lastMessage', 'lastSenderId'
+        ])
+        && request.resource.data.keys().hasAll([
+          'conversationId', 'itemId', 'itemName', 'ownerId',
+          'borrowerId', 'participantIds', 'createdAt', 'updatedAt',
+          'lastMessage', 'lastSenderId'
+        ])
+        && request.resource.data.conversationId == conversationId
+        && request.resource.data.borrowerId == request.auth.uid
+        && request.resource.data.itemId is string
+        && exists(itemPath(request.resource.data.itemId))
+        && request.resource.data.ownerId ==
+          get(itemPath(request.resource.data.itemId)).data.ownerId
+        && request.resource.data.ownerId != request.auth.uid
+        && get(itemPath(request.resource.data.itemId)).data.status == 'ACTIVE'
+        && request.resource.data.itemName ==
+          get(itemPath(request.resource.data.itemId)).data.itemName
+        && request.resource.data.participantIds == [
+          request.resource.data.ownerId,
+          request.resource.data.borrowerId
+        ]
+        && request.resource.data.createdAt is int
+        && request.resource.data.updatedAt == request.resource.data.createdAt
+        && request.resource.data.lastMessage == ''
+        && request.resource.data.lastSenderId == '';
+
+      // Message metadata may be updated, but participant and item
+      // identities can never be changed.
+      allow update: if conversationMember(resource.data)
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly([
+            'lastMessage', 'lastSenderId', 'updatedAt'
+          ])
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasAll([
+            'lastMessage', 'lastSenderId', 'updatedAt'
+          ])
+        && request.resource.data.lastSenderId == request.auth.uid
+        && request.resource.data.lastMessage is string
+        && request.resource.data.lastMessage.size() > 0
+        && request.resource.data.lastMessage.size() <= 1200
+        && request.resource.data.updatedAt is int
+        && request.resource.data.updatedAt >= resource.data.updatedAt;
+
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        function parent() {
+          return get(conversationPath(conversationId)).data;
+        }
+
+        function isParticipant() {
+          return exists(conversationPath(conversationId))
+            && conversationMember(parent());
+        }
+
+        allow get, list: if isParticipant();
+
+        allow create: if isParticipant()
+          && request.resource.data.keys().hasOnly([
+            'messageId', 'senderId', 'recipientId', 'text', 'createdAt'
+          ])
+          && request.resource.data.keys().hasAll([
+            'messageId', 'senderId', 'recipientId', 'text', 'createdAt'
+          ])
+          && request.resource.data.messageId == messageId
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.recipientId == (
+            request.auth.uid == parent().ownerId
+              ? parent().borrowerId : parent().ownerId
+          )
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1200
+          && request.resource.data.createdAt is int
+          && request.resource.data.createdAt >= parent().createdAt
+          // The current Android implementation uses a batch to
+          // save the message and update its conversation preview.
+          && getAfter(conversationPath(conversationId)).data.lastMessage
+            == request.resource.data.text
+          && getAfter(conversationPath(conversationId)).data.lastSenderId
+            == request.auth.uid
+          && getAfter(conversationPath(conversationId)).data.updatedAt
+            == request.resource.data.createdAt;
+
+        allow update, delete: if false;
+      }
+    }
+
+    match /notifications/{notificationId} {
       function validNotificationType(type) {
-        // NEW_MESSAGE remains disabled until chat rules are built.
         return type in [
-          'BOOKING_REQUEST',
-          'BOOKING_ACCEPTED',
-          'BOOKING_REJECTED',
-          'BOOKING_CANCELLED'
+          'BOOKING_REQUEST', 'BOOKING_ACCEPTED',
+          'BOOKING_REJECTED', 'BOOKING_CANCELLED', 'NEW_MESSAGE'
         ];
       }
 
@@ -390,46 +456,46 @@ service cloud.firestore {
         return bookingExists(data.relatedId)
           && exists(itemPath(bookingData(data.relatedId).itemId))
           && (
-            (
-              data.type == 'BOOKING_REQUEST'
+            (data.type == 'BOOKING_REQUEST'
               && bookingData(data.relatedId).status == 'PENDING'
-              && data.senderId ==
-                bookingData(data.relatedId).borrowerId
+              && data.senderId == bookingData(data.relatedId).borrowerId
               && data.recipientId == itemOwner(
                 bookingData(data.relatedId).itemId
-              )
-            )
+              ))
             ||
-            (
-              data.type == 'BOOKING_ACCEPTED'
+            (data.type == 'BOOKING_ACCEPTED'
               && bookingData(data.relatedId).status == 'ACCEPTED'
               && data.senderId == itemOwner(
                 bookingData(data.relatedId).itemId
               )
-              && data.recipientId ==
-                bookingData(data.relatedId).borrowerId
-            )
+              && data.recipientId == bookingData(data.relatedId).borrowerId)
             ||
-            (
-              data.type == 'BOOKING_REJECTED'
+            (data.type == 'BOOKING_REJECTED'
               && bookingData(data.relatedId).status == 'REJECTED'
               && data.senderId == itemOwner(
                 bookingData(data.relatedId).itemId
               )
-              && data.recipientId ==
-                bookingData(data.relatedId).borrowerId
-            )
+              && data.recipientId == bookingData(data.relatedId).borrowerId)
             ||
-            (
-              data.type == 'BOOKING_CANCELLED'
+            (data.type == 'BOOKING_CANCELLED'
               && bookingData(data.relatedId).status == 'CANCELLED'
-              && data.senderId ==
-                bookingData(data.relatedId).borrowerId
+              && data.senderId == bookingData(data.relatedId).borrowerId
               && data.recipientId == itemOwner(
                 bookingData(data.relatedId).itemId
-              )
-            )
+              ))
           );
+      }
+
+      function validMessageNotification(data) {
+        return data.type == 'NEW_MESSAGE'
+          && exists(conversationPath(data.relatedId))
+          && data.senderId in
+            get(conversationPath(data.relatedId)).data.participantIds
+          && data.recipientId in
+            get(conversationPath(data.relatedId)).data.participantIds
+          && data.senderId != data.recipientId
+          && get(conversationPath(data.relatedId)).data.lastSenderId
+            == data.senderId;
       }
 
       allow read: if signedIn()
@@ -458,7 +524,10 @@ service cloud.firestore {
         && request.resource.data.relatedId is string
         && request.resource.data.isRead == false
         && request.resource.data.createdAt is int
-        && validBookingNotification(request.resource.data);
+        && (
+          validBookingNotification(request.resource.data)
+          || validMessageNotification(request.resource.data)
+        );
 
       allow update: if signedIn()
         && resource.data.recipientId == request.auth.uid
@@ -469,12 +538,7 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // -------------------------
-    // REVIEWS
-    // -------------------------
-
     match /reviews/{reviewId} {
-
       function bookingExists(bookingId) {
         return bookingId is string
           && exists(bookingPath(bookingId));
@@ -500,23 +564,17 @@ service cloud.firestore {
           && bookingData(data.bookingId).borrowerId
             != ownerId(bookingData(data.bookingId).itemId)
           && (
-            (
-              data.reviewerId ==
-                bookingData(data.bookingId).borrowerId
+            (data.reviewerId == bookingData(data.bookingId).borrowerId
               && data.revieweeId == ownerId(
                 bookingData(data.bookingId).itemId
               )
-              && data.revieweeRole == 'OWNER'
-            )
+              && data.revieweeRole == 'OWNER')
             ||
-            (
-              data.reviewerId == ownerId(
+            (data.reviewerId == ownerId(
                 bookingData(data.bookingId).itemId
               )
-              && data.revieweeId ==
-                bookingData(data.bookingId).borrowerId
-              && data.revieweeRole == 'BORROWER'
-            )
+              && data.revieweeId == bookingData(data.bookingId).borrowerId
+              && data.revieweeRole == 'BORROWER')
           );
       }
 
