@@ -47,6 +47,16 @@ import java.util.UUID;
 
 public class MessagesFragment extends Fragment {
 
+    private static final String ARG_OPEN_ITEM_ID = "sharely_open_item_id";
+
+    public static MessagesFragment forItem(String itemId) {
+        MessagesFragment fragment = new MessagesFragment();
+        Bundle args = new Bundle();
+        args.putString(ARG_OPEN_ITEM_ID, itemId);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final NotificationService notifications = new NotificationService();
 
@@ -160,10 +170,15 @@ public class MessagesFragment extends Fragment {
 
         if (uid == null) {
             showNotice("Sign in to read and send messages.");
-        } else if (conversationId == null) {
-            showInbox();
-        } else {
+        } else if (conversationId != null) {
             showThread();
+        } else if (getArguments() != null
+                && getArguments().getString(ARG_OPEN_ITEM_ID) != null) {
+            openListingFromItemDetails(
+                    getArguments().getString(ARG_OPEN_ITEM_ID)
+            );
+        } else {
+            showInbox();
         }
 
         return root;
@@ -447,6 +462,39 @@ public class MessagesFragment extends Fragment {
                 );
     }
 
+    private void openListingFromItemDetails(String linkedItemId) {
+        if (linkedItemId == null || linkedItemId.trim().isEmpty()) {
+            showInbox();
+            return;
+        }
+
+        showNotice("Opening conversation...");
+
+        db.collection("items")
+                .document(linkedItemId)
+                .get()
+                .addOnSuccessListener(item -> {
+                    if (!isAdded() || body == null) return;
+
+                    String owner = item.getString("ownerId");
+                    if (!item.exists()
+                            || owner == null
+                            || uid.equals(owner)
+                            || !"ACTIVE".equals(item.getString("status"))) {
+                        toast("This listing cannot start a conversation.");
+                        showInbox();
+                        return;
+                    }
+
+                    createOrOpen(item);
+                })
+                .addOnFailureListener(error -> {
+                    if (!isAdded() || body == null) return;
+                    toast("Unable to open chat: " + error.getMessage());
+                    showInbox();
+                });
+    }
+
     private void createOrOpen(DocumentSnapshot item) {
         String owner = item.getString("ownerId");
         String name = item.getString("itemName");
@@ -480,30 +528,34 @@ public class MessagesFragment extends Fragment {
         data.put("lastMessage", "");
         data.put("lastSenderId", "");
 
-        db.runTransaction(tx -> {
-            DocumentSnapshot existing = tx.get(ref);
-
-            if (!existing.exists()) {
-                tx.set(ref, data);
-            } else if (!uid.equals(existing.getString("borrowerId"))
-                    || !owner.equals(existing.getString("ownerId"))
-                    || !item.getId().equals(
-                    existing.getString("itemId")
-            )) {
-                throw new IllegalStateException(
-                        "Conversation details do not match"
-                );
-            }
-
-            return null;
-        }).addOnSuccessListener(unused -> {
+        // New conversations may not be readable until the document exists.
+        // Create first; when it already exists, a protected create attempt
+        // fails and we then read the existing participant-only document.
+        ref.set(data).addOnSuccessListener(unused -> {
             if (isAdded()) {
                 openThread(id, owner, name);
             }
-        }).addOnFailureListener(
-                error -> toast(
-                        "Could not start chat: " + error.getMessage()
-                )
+        }).addOnFailureListener(createError ->
+                ref.get()
+                        .addOnSuccessListener(existing -> {
+                            if (!isAdded()) return;
+
+                            if (!existing.exists()
+                                    || !uid.equals(existing.getString("borrowerId"))
+                                    || !owner.equals(existing.getString("ownerId"))
+                                    || !item.getId().equals(existing.getString("itemId"))) {
+                                toast("Unable to open this conversation.");
+                                showInbox();
+                                return;
+                            }
+
+                            openThread(id, owner, name);
+                        })
+                        .addOnFailureListener(error -> {
+                            if (!isAdded()) return;
+                            toast("Could not open chat: " + error.getMessage());
+                            showInbox();
+                        })
         );
     }
 
@@ -571,7 +623,14 @@ public class MessagesFragment extends Fragment {
                 dp(12), dp(16), dp(12), dp(14)
         );
         messages.setOrientation(LinearLayout.VERTICAL);
-        scroll.addView(messages);
+        // Keep the message column within the visible screen width.
+        scroll.addView(
+                messages,
+                new ScrollView.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+        );
 
         LinearLayout composer = new LinearLayout(requireContext());
         composer.setGravity(Gravity.CENTER_VERTICAL);
@@ -671,6 +730,21 @@ public class MessagesFragment extends Fragment {
 
         boolean mine = uid.equals(sender);
 
+        // A full-width row gives the bubble a real horizontal constraint.
+        // Android otherwise may measure a WRAP_CONTENT bubble too wide and
+        // clip the text instead of wrapping it onto subsequent lines.
+        LinearLayout row = new LinearLayout(requireContext());
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(mine ? Gravity.END : Gravity.START);
+
+        LinearLayout.LayoutParams rowParams =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+        rowParams.bottomMargin = dp(10);
+        list.addView(row, rowParams);
+
         LinearLayout bubble = new LinearLayout(requireContext());
         bubble.setOrientation(LinearLayout.VERTICAL);
         bubble.setBackground(
@@ -682,9 +756,19 @@ public class MessagesFragment extends Fragment {
                         16
                 )
         );
-        bubble.setPadding(
-                dp(13), dp(9), dp(13), dp(9)
-        );
+        bubble.setPadding(dp(13), dp(9), dp(13), dp(9));
+
+        // Use MATCH_PARENT with a large side margin rather than a maximum
+        // width on an unbounded TextView. This forces Android to measure
+        // every message at a known width, regardless of message length.
+        LinearLayout.LayoutParams bubbleParams =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+        bubbleParams.leftMargin = mine ? dp(62) : 0;
+        bubbleParams.rightMargin = mine ? 0 : dp(62);
+        row.addView(bubble, bubbleParams);
 
         TextView content = text(
                 message,
@@ -692,35 +776,37 @@ public class MessagesFragment extends Fragment {
                 mine ? Color.WHITE : ink,
                 false
         );
-        bubble.addView(content);
+        content.setSingleLine(false);
+        content.setHorizontallyScrolling(false);
+        content.setEllipsize(null);
+        content.setMaxLines(Integer.MAX_VALUE);
+        content.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
+        content.setTextIsSelectable(false);
+        bubble.addView(
+                content,
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+        );
 
         TextView time = text(
                 new SimpleDateFormat(
                         "h:mm a",
                         Locale.getDefault()
-                ).format(
-                        new Date(number(document, "createdAt"))
-                ),
+                ).format(new Date(number(document, "createdAt"))),
                 11,
-                mine
-                        ? Color.rgb(221, 244, 234)
-                        : muted,
+                mine ? Color.rgb(221, 244, 234) : muted,
                 false
         );
 
         LinearLayout.LayoutParams timeParams =
-                new LinearLayout.LayoutParams(-2, -2);
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
         timeParams.topMargin = dp(5);
         bubble.addView(time, timeParams);
-
-        LinearLayout.LayoutParams params =
-                new LinearLayout.LayoutParams(-2, -2);
-        params.gravity = mine ? Gravity.END : Gravity.START;
-        params.bottomMargin = dp(10);
-        params.leftMargin = mine ? dp(50) : 0;
-        params.rightMargin = mine ? 0 : dp(50);
-
-        list.addView(bubble, params);
     }
 
     private void sendMessage(EditText input, Button send) {
@@ -731,7 +817,8 @@ public class MessagesFragment extends Fragment {
             return;
         }
 
-        String value = input.getText().toString().trim();
+        // Read the complete composer contents (not just the visible line).
+        final String value = input.getText().toString().trim();
 
         if (value.isEmpty()) return;
 
@@ -742,6 +829,7 @@ public class MessagesFragment extends Fragment {
 
         sending = true;
         send.setEnabled(false);
+        input.setEnabled(false);
 
         final String id = conversationId;
         final String recipient = recipientId;
@@ -775,6 +863,7 @@ public class MessagesFragment extends Fragment {
 
             if (isAdded() && id.equals(conversationId)) {
                 input.setText("");
+                input.setEnabled(true);
                 send.setEnabled(true);
             }
 
@@ -801,6 +890,7 @@ public class MessagesFragment extends Fragment {
             sending = false;
 
             if (isAdded()) {
+                input.setEnabled(true);
                 send.setEnabled(true);
                 toast(
                         "Message not sent: " + error.getMessage()
