@@ -1,5 +1,6 @@
 package com.example.sharely;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 
@@ -14,8 +15,11 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainAppActivity extends AppCompatActivity {
 
+    public static final String EXTRA_CHAT_ITEM_ID = "sharely_chat_item_id";
+
     private BottomNavigationView bottomNavigation;
     private boolean browseSearchFocusRequested = false;
+    private String pendingChatItemId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,7 +64,12 @@ public class MainAppActivity extends AppCompatActivity {
                 fragment = new ActivityFragment();
 
             } else if (selected == R.id.navMessages) {
-                fragment = new MessagesFragment();
+                if (pendingChatItemId != null) {
+                    fragment = MessagesFragment.forItem(pendingChatItemId);
+                    pendingChatItemId = null;
+                } else {
+                    fragment = new MessagesFragment();
+                }
 
             } else if (selected == R.id.navProfile) {
                 fragment = new ProfileFragment();
@@ -74,7 +83,32 @@ public class MainAppActivity extends AppCompatActivity {
         });
 
         if (savedInstanceState == null) {
-            bottomNavigation.setSelectedItemId(R.id.navHome);
+            String initialItem = getIntent().getStringExtra(EXTRA_CHAT_ITEM_ID);
+            if (initialItem != null && !initialItem.trim().isEmpty()) {
+                openMessagesForItem(initialItem);
+            } else {
+                bottomNavigation.setSelectedItemId(R.id.navHome);
+            }
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        String itemId = intent.getStringExtra(EXTRA_CHAT_ITEM_ID);
+        if (itemId != null && !itemId.trim().isEmpty()) {
+            openMessagesForItem(itemId);
+        }
+    }
+
+    private void openMessagesForItem(String itemId) {
+        pendingChatItemId = itemId;
+        if (bottomNavigation.getSelectedItemId() == R.id.navMessages) {
+            loadFragment(MessagesFragment.forItem(pendingChatItemId));
+            pendingChatItemId = null;
+        } else {
+            bottomNavigation.setSelectedItemId(R.id.navMessages);
         }
     }
 
