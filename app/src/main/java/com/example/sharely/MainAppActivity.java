@@ -1,5 +1,6 @@
 package com.example.sharely;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 
@@ -14,195 +15,127 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainAppActivity extends AppCompatActivity {
 
+    public static final String EXTRA_CHAT_ITEM_ID = "sharely_chat_item_id";
+
     private BottomNavigationView bottomNavigation;
-
     private boolean browseSearchFocusRequested = false;
-
+    private String pendingChatItemId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         super.onCreate(savedInstanceState);
 
         EdgeToEdge.enable(this);
+        setContentView(R.layout.activity_main_app);
 
-        setContentView(
-                R.layout.activity_main_app
-        );
-
-
-        // -----------------------------------------------------
-        // SYSTEM BAR / CAMERA CUTOUT SPACING
-        // -----------------------------------------------------
-
-        View mainRoot =
-                findViewById(
-                        R.id.mainAppRoot
-                );
+        View root = findViewById(R.id.mainAppRoot);
 
         ViewCompat.setOnApplyWindowInsetsListener(
-                mainRoot,
-                (v, insets) -> {
+                root,
+                (view, insets) -> {
+                    Insets bars = insets.getInsets(
+                            WindowInsetsCompat.Type.systemBars()
+                    );
 
-                    Insets systemBars =
-                            insets.getInsets(
-                                    WindowInsetsCompat.Type.systemBars()
-                            );
-
-                    v.setPadding(
-                            systemBars.left,
-                            systemBars.top,
-                            systemBars.right,
-                            systemBars.bottom
+                    view.setPadding(
+                            bars.left,
+                            bars.top,
+                            bars.right,
+                            bars.bottom
                     );
 
                     return insets;
                 }
         );
 
+        bottomNavigation = findViewById(R.id.bottomNavigation);
 
-        // -----------------------------------------------------
-        // BOTTOM NAVIGATION
-        // -----------------------------------------------------
+        bottomNavigation.setOnItemSelectedListener(item -> {
+            int selected = item.getItemId();
+            Fragment fragment;
 
-        bottomNavigation =
-                findViewById(
-                        R.id.bottomNavigation
-                );
+            if (selected == R.id.navHome) {
+                fragment = new HomeFragment();
 
+            } else if (selected == R.id.navBrowse) {
+                fragment = new BrowseFragment();
 
-        // -----------------------------------------------------
-        // DEFAULT SCREEN
-        // -----------------------------------------------------
+            } else if (selected == R.id.navActivity) {
+                fragment = new ActivityFragment();
+
+            } else if (selected == R.id.navMessages) {
+                if (pendingChatItemId != null) {
+                    fragment = MessagesFragment.forItem(pendingChatItemId);
+                    pendingChatItemId = null;
+                } else {
+                    fragment = new MessagesFragment();
+                }
+
+            } else if (selected == R.id.navProfile) {
+                fragment = new ProfileFragment();
+
+            } else {
+                return false;
+            }
+
+            loadFragment(fragment);
+            return true;
+        });
 
         if (savedInstanceState == null) {
-
-            loadFragment(
-                    new HomeFragment()
-            );
-
-            bottomNavigation.setSelectedItemId(
-                    R.id.navHome
-            );
+            String initialItem = getIntent().getStringExtra(EXTRA_CHAT_ITEM_ID);
+            if (initialItem != null && !initialItem.trim().isEmpty()) {
+                openMessagesForItem(initialItem);
+            } else {
+                bottomNavigation.setSelectedItemId(R.id.navHome);
+            }
         }
-
-
-        // -----------------------------------------------------
-        // TAB SELECTION
-        // -----------------------------------------------------
-
-        bottomNavigation.setOnItemSelectedListener(
-                item -> {
-
-                    int itemId =
-                            item.getItemId();
-
-                    Fragment selectedFragment;
-
-
-                    if (itemId == R.id.navHome) {
-
-                        selectedFragment =
-                                new HomeFragment();
-
-                    } else if (itemId == R.id.navBrowse) {
-
-                        selectedFragment =
-                                new BrowseFragment();
-
-                    } else if (itemId == R.id.navActivity) {
-
-                        selectedFragment =
-                                new ActivityFragment();
-
-                    } else if (itemId == R.id.navProfile) {
-
-                        selectedFragment =
-                                new ProfileFragment();
-
-                    } else {
-
-                        return false;
-                    }
-
-
-                    loadFragment(
-                            selectedFragment
-                    );
-
-                    return true;
-                }
-        );
     }
 
-
-    // =========================================================
-    // SWITCH TAB
-    // =========================================================
-
-    public void selectTab(
-            int menuItemId
-    ) {
-
-        bottomNavigation.setSelectedItemId(
-                menuItemId
-        );
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        String itemId = intent.getStringExtra(EXTRA_CHAT_ITEM_ID);
+        if (itemId != null && !itemId.trim().isEmpty()) {
+            openMessagesForItem(itemId);
+        }
     }
 
+    private void openMessagesForItem(String itemId) {
+        pendingChatItemId = itemId;
+        if (bottomNavigation.getSelectedItemId() == R.id.navMessages) {
+            loadFragment(MessagesFragment.forItem(pendingChatItemId));
+            pendingChatItemId = null;
+        } else {
+            bottomNavigation.setSelectedItemId(R.id.navMessages);
+        }
+    }
 
-    // =========================================================
-    // OPEN BROWSE
-    // =========================================================
+    public void selectTab(int menuItemId) {
+        bottomNavigation.setSelectedItemId(menuItemId);
+    }
 
     public void openBrowse(boolean focusSearch) {
-
         browseSearchFocusRequested = focusSearch;
 
         if (bottomNavigation.getSelectedItemId() == R.id.navBrowse) {
-
-            loadFragment(
-                    new BrowseFragment()
-            );
-
+            loadFragment(new BrowseFragment());
         } else {
-
-            bottomNavigation.setSelectedItemId(
-                    R.id.navBrowse
-            );
+            bottomNavigation.setSelectedItemId(R.id.navBrowse);
         }
     }
 
-
-    // =========================================================
-    // BROWSE SEARCH FOCUS
-    // =========================================================
-
     public boolean consumeBrowseSearchFocus() {
-
-        boolean requested =
-                browseSearchFocusRequested;
-
-        browseSearchFocusRequested =
-                false;
-
-        return requested;
+        boolean value = browseSearchFocusRequested;
+        browseSearchFocusRequested = false;
+        return value;
     }
 
-
-    // =========================================================
-    // LOAD FRAGMENT
-    // =========================================================
-
-    private void loadFragment(
-            Fragment fragment
-    ) {
-
+    private void loadFragment(Fragment fragment) {
         getSupportFragmentManager()
                 .beginTransaction()
-                .replace(
-                        R.id.fragmentContainer,
-                        fragment
-                )
+                .replace(R.id.fragmentContainer, fragment)
                 .commit();
     }
 }

@@ -5,6 +5,7 @@ import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -61,6 +62,7 @@ public class ItemDetailsActivity extends AppCompatActivity {
 
     private LinearLayout photoContainer;
     private Button requestBookingButton;
+    private Button messageOwnerButton;
 
     private ItemRepository itemRepository;
     private BookingRepository bookingRepository;
@@ -116,6 +118,8 @@ public class ItemDetailsActivity extends AppCompatActivity {
 
         requestBookingButton =
                 findViewById(R.id.buttonRequestBooking);
+        messageOwnerButton =
+                findViewById(R.id.buttonMessageOwner);
 
         itemId = getIntent().getStringExtra("itemId");
 
@@ -136,6 +140,11 @@ public class ItemDetailsActivity extends AppCompatActivity {
         requestBookingButton.setOnClickListener(
                 v -> submitBookingRequest()
         );
+
+        messageOwnerButton.setOnClickListener(
+                v -> openOwnerConversation()
+        );
+        messageOwnerButton.setEnabled(false);
 
         requestBookingButton.setEnabled(false);
 
@@ -379,6 +388,16 @@ public class ItemDetailsActivity extends AppCompatActivity {
                 canBook && !requestInProgress
         );
 
+        boolean canMessage = itemLoaded
+                && currentItem != null
+                && currentItem.getStatus() == ItemStatus.ACTIVE
+                && currentItem.getOwnerId() != null
+                && currentUser != null
+                && !owner;
+
+        messageOwnerButton.setVisibility(owner ? View.GONE : View.VISIBLE);
+        messageOwnerButton.setEnabled(canMessage);
+
         if (requestInProgress) {
             requestBookingButton.setText(
                     "Checking request..."
@@ -392,6 +411,34 @@ public class ItemDetailsActivity extends AppCompatActivity {
                     "Request booking"
             );
         }
+    }
+
+    // =====================================================
+    // OPEN CHAT WITH THIS LISTING'S OWNER
+    // =====================================================
+
+    private void openOwnerConversation() {
+        String uid = userRepository.getCurrentUserId();
+
+        if (uid == null || uid.trim().isEmpty()) {
+            showToast("Please sign in to message the owner.");
+            return;
+        }
+
+        if (!itemLoaded || currentItem == null
+                || currentItem.getStatus() != ItemStatus.ACTIVE
+                || currentItem.getOwnerId() == null
+                || uid.equals(currentItem.getOwnerId())) {
+            showToast("This item's owner is not available to message.");
+            return;
+        }
+
+        Intent intent = new Intent(this, MainAppActivity.class);
+        intent.putExtra(MainAppActivity.EXTRA_CHAT_ITEM_ID, itemId);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
+                | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+        finish();
     }
 
     // =====================================================

@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
@@ -16,6 +15,11 @@
         android:id="@+id/navActivity"
         android:icon="@android:drawable/ic_menu_recent_history"
         android:title="Activity" />
+
+    <item
+        android:id="@+id/navMessages"
+        android:icon="@android:drawable/ic_dialog_email"
+        android:title="Messages" />
 
     <item
         android:id="@+id/navProfile"
