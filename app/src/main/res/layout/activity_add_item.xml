@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/addItemMain"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -15,7 +15,6 @@
         android:paddingTop="20dp"
         android:paddingRight="22dp"
         android:paddingBottom="40dp">
-
 
         <!-- Top bar -->
 
@@ -50,8 +49,7 @@
 
         </LinearLayout>
 
-
-        <!-- Intro -->
+        <!-- Introduction -->
 
         <TextView
             android:layout_width="match_parent"
@@ -70,7 +68,6 @@
             android:text="Add clear details so borrowers know exactly what you're offering."
             android:textColor="@color/sharely_text_secondary"
             android:textSize="15sp" />
-
 
         <!-- Photos -->
 
@@ -91,7 +88,8 @@
             android:textColor="@color/sharely_text_secondary"
             android:textSize="13sp" />
 
-        <!-- Selected photos -->
+        <!-- Selected photo previews -->
+
         <HorizontalScrollView
             android:id="@+id/photoPreviewScroll"
             android:layout_width="match_parent"
@@ -99,26 +97,31 @@
             android:layout_marginTop="12dp"
             android:scrollbars="none"
             android:visibility="gone">
+
             <LinearLayout
                 android:id="@+id/photoPreviewContainer"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal" />
+
         </HorizontalScrollView>
 
-        <Button
+        <!-- Add photos button -->
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonAddPhoto"
             android:layout_width="match_parent"
             android:layout_height="120dp"
             android:layout_marginTop="12dp"
-            android:background="@drawable/upload_area"
-            android:backgroundTint="@null"
             android:text="+  Add photos"
             android:textAllCaps="false"
-            android:textColor="@color/white"
+            android:textColor="@color/sharely_primary"
             android:textSize="16sp"
-            android:textStyle="bold" />
-
+            android:textStyle="bold"
+            app:backgroundTint="@color/sharely_soft"
+            app:cornerRadius="18dp"
+            app:strokeColor="@color/sharely_border"
+            app:strokeWidth="1dp" />
 
         <!-- Item details -->
 
@@ -130,7 +133,6 @@
             android:textColor="@color/sharely_text_primary"
             android:textSize="20sp"
             android:textStyle="bold" />
-
 
         <!-- Item name -->
 
@@ -155,7 +157,6 @@
             android:textColor="@color/sharely_text_primary"
             android:textColorHint="@color/sharely_text_secondary"
             android:textSize="15sp" />
-
 
         <!-- Description -->
 
@@ -182,7 +183,6 @@
             android:textColorHint="@color/sharely_text_secondary"
             android:textSize="15sp" />
 
-
         <!-- Category -->
 
         <TextView
@@ -206,7 +206,6 @@
             android:textColor="@color/sharely_text_primary"
             android:textColorHint="@color/sharely_text_secondary"
             android:textSize="15sp" />
-
 
         <!-- Pricing -->
 
@@ -241,7 +240,6 @@
             android:textColorHint="@color/sharely_text_secondary"
             android:textSize="15sp" />
 
-
         <!-- Location -->
 
         <TextView
@@ -274,7 +272,6 @@
             android:textColorHint="@color/sharely_text_secondary"
             android:textSize="15sp" />
 
-
         <!-- Availability -->
 
         <TextView
@@ -294,18 +291,22 @@
             android:textColor="@color/sharely_text_secondary"
             android:textSize="13sp" />
 
-        <Button
+        <!-- Set availability button -->
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonSetAvailability"
             android:layout_width="match_parent"
             android:layout_height="54dp"
             android:layout_marginTop="12dp"
-            android:background="@drawable/button_secondary"
-            android:backgroundTint="@null"
-            android:text="Set availability"
+            android:text="Set availability (start and end)"
             android:textAllCaps="false"
-            android:textColor="@color/white"
+            android:textColor="@color/sharely_primary"
             android:textSize="15sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            app:backgroundTint="@android:color/white"
+            app:cornerRadius="16dp"
+            app:strokeColor="@color/sharely_primary"
+            app:strokeWidth="1dp" />
 
         <TextView
             android:id="@+id/textAvailabilitySummary"
@@ -315,7 +316,6 @@
             android:text="No availability selected"
             android:textColor="@color/sharely_text_secondary"
             android:textSize="14sp" />
-
 
         <!-- Publish -->
 

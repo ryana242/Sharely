@@ -1,0 +1,607 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function itemPath(itemId) {
+      return /databases/$(database)/documents/items/$(itemId);
+    }
+
+    function bookingPath(bookingId) {
+      return /databases/$(database)/documents/bookings/$(bookingId);
+    }
+
+    function ownsItem(itemId) {
+      return signedIn()
+        && itemId is string
+        && exists(itemPath(itemId))
+        && get(itemPath(itemId)).data.ownerId == request.auth.uid;
+    }
+
+    // Older listings may not yet have acceptedReservations.
+    function ledger(data) {
+      return data.get('acceptedReservations', []);
+    }
+
+    function reservation(bookingId, bookingData) {
+      return {
+        'bookingId': bookingId,
+        'startTime': bookingData.startTime,
+        'endTime': bookingData.endTime
+      };
+    }
+
+    function validReservation(entry) {
+      return entry is map
+        && entry.keys().hasAll(['bookingId', 'startTime', 'endTime'])
+        && entry.keys().hasOnly(['bookingId', 'startTime', 'endTime'])
+        && entry.bookingId is string
+        && entry.bookingId.size() > 0
+        && entry.startTime is int
+        && entry.endTime is int
+        && entry.startTime < entry.endTime;
+    }
+
+    // A booking can become ACCEPTED only when its reservation
+    // is appended to the item in the SAME atomic write.
+    function ledgerAppendsBooking(itemId, bookingId, data) {
+      let before = ledger(get(itemPath(itemId)).data);
+      let after = ledger(getAfter(itemPath(itemId)).data);
+      let entry = reservation(bookingId, data);
+      return before is list
+        && after is list
+        && before.size() < 150
+        && !(entry in before)
+        && after == before.concat([entry]);
+    }
+
+    // Cancellation/completion must remove exactly that booking's
+    // existing reservation in the SAME atomic write.
+    function ledgerRemovesBooking(itemId, bookingId, data) {
+      let before = ledger(get(itemPath(itemId)).data);
+      let after = ledger(getAfter(itemPath(itemId)).data);
+      let entry = reservation(bookingId, data);
+      return before is list
+        && after is list
+        && entry in before
+        && before.size() == after.size() + 1
+        && after == before.removeAll([entry]);
+    }
+
+    function listingAllowsBooking(itemId, data) {
+      let item = get(itemPath(itemId)).data;
+      return item.status == 'ACTIVE'
+        && item.availabilityStart is int
+        && item.availabilityEnd is int
+        && item.availabilityStart <= data.startTime
+        && item.availabilityEnd >= data.endTime
+        && data.startTime > request.time.toMillis();
+    }
+
+    // Item-ledger writes are separately checked against the
+    // booking document's BEFORE and AFTER states.
+    function validAppend(itemId, before, after) {
+      let entry = after[before.size()];
+      let oldBooking = get(bookingPath(entry.bookingId)).data;
+      let newBooking = getAfter(bookingPath(entry.bookingId)).data;
+      return after.size() == before.size() + 1
+        && after == before.concat([entry])
+        && validReservation(entry)
+        && oldBooking.itemId == itemId
+        && oldBooking.startTime == entry.startTime
+        && oldBooking.endTime == entry.endTime
+        && oldBooking.status == 'PENDING'
+        && newBooking.status == 'ACCEPTED'
+        && ownsItem(itemId)
+        && listingAllowsBooking(itemId, oldBooking);
+    }
+
+    function validRemoval(itemId, before, after) {
+      let removed = before.removeAll(after);
+      let entry = removed[0];
+      let oldBooking = get(bookingPath(entry.bookingId)).data;
+      let newBooking = getAfter(bookingPath(entry.bookingId)).data;
+      return before.size() == after.size() + 1
+        && removed.size() == 1
+        && after == before.removeAll([entry])
+        && validReservation(entry)
+        && oldBooking.itemId == itemId
+        && oldBooking.startTime == entry.startTime
+        && oldBooking.endTime == entry.endTime
+        && (
+          (oldBooking.status == 'ACCEPTED'
+            && newBooking.status == 'CANCELLED'
+            && isUser(oldBooking.borrowerId)
+            && oldBooking.startTime > request.time.toMillis())
+          ||
+          (oldBooking.status == 'ACTIVE'
+            && newBooking.status == 'COMPLETED'
+            && ownsItem(itemId)
+            && oldBooking.startTime <= request.time.toMillis())
+        );
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn();
+
+      allow create: if isUser(userId)
+        && request.resource.data.keys().hasOnly([
+          'name', 'email', 'rating', 'transactionCount'
+        ])
+        && request.resource.data.keys().hasAll([
+          'name', 'email', 'rating', 'transactionCount'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.email is string
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.rating is int
+        && request.resource.data.rating == 0
+        && request.resource.data.transactionCount is int
+        && request.resource.data.transactionCount == 0;
+
+      allow update: if isUser(userId)
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly(['name'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0;
+
+      allow delete: if false;
+    }
+
+    match /items/{itemId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.itemId == itemId
+        && request.resource.data.status == 'ACTIVE'
+        && ledger(request.resource.data) is list
+        && ledger(request.resource.data).size() == 0;
+
+      // Ordinary owner edits cannot touch the reservation ledger.
+      // Owners cannot invalidate an accepted booking by editing dates.
+      allow update: if (
+        signedIn()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.itemId == resource.data.itemId
+        && resource.data.status != 'PAST'
+        && request.resource.data.status in [
+          'ACTIVE', 'UNAVAILABLE', 'PAST'
+        ]
+        && !request.resource.data.diff(resource.data)
+          .affectedKeys().hasAny(['acceptedReservations'])
+        && (
+          ledger(resource.data).size() == 0
+          || !request.resource.data.diff(resource.data)
+            .affectedKeys().hasAny([
+              'availabilityStart', 'availabilityEnd', 'status'
+            ])
+        )
+      ) || (
+        // Booking transaction: reservation ledger and nothing else.
+        signedIn()
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly(['acceptedReservations'])
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasAll(['acceptedReservations'])
+        && ledger(resource.data) is list
+        && ledger(request.resource.data) is list
+        && (
+          (
+            ledger(request.resource.data).size() ==
+              ledger(resource.data).size() + 1
+            && validAppend(
+              itemId,
+              ledger(resource.data),
+              ledger(request.resource.data)
+            )
+          )
+          ||
+          (
+            ledger(resource.data).size() ==
+              ledger(request.resource.data).size() + 1
+            && validRemoval(
+              itemId,
+              ledger(resource.data),
+              ledger(request.resource.data)
+            )
+          )
+        )
+      );
+
+      allow delete: if false;
+    }
+
+    match /bookings/{bookingId} {
+      // Only the borrower or listing owner may read full booking data.
+      // Borrower queries by itemId for OTHER users' bookings must be
+      // redesigned before these rules are deployed.
+      allow get, list: if signedIn()
+        && (
+          resource.data.borrowerId == request.auth.uid
+          || ownsItem(resource.data.itemId)
+        );
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'bookingId', 'borrowerId', 'itemId',
+          'startTime', 'endTime', 'status'
+        ])
+        && request.resource.data.keys().hasAll([
+          'bookingId', 'borrowerId', 'itemId',
+          'startTime', 'endTime', 'status'
+        ])
+        && request.resource.data.bookingId == bookingId
+        && request.resource.data.borrowerId == request.auth.uid
+        && request.resource.data.itemId is string
+        && request.resource.data.itemId.size() > 0
+        && request.resource.data.startTime is int
+        && request.resource.data.endTime is int
+        && request.resource.data.startTime < request.resource.data.endTime
+        && request.resource.data.status == 'PENDING'
+        && exists(itemPath(request.resource.data.itemId))
+        && !ownsItem(request.resource.data.itemId)
+        && listingAllowsBooking(
+          request.resource.data.itemId,
+          request.resource.data
+        );
+
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly(['status'])
+        && (
+          // Owner accepts and atomically reserves the dates.
+          (
+            resource.data.status == 'PENDING'
+            && request.resource.data.status == 'ACCEPTED'
+            && ownsItem(resource.data.itemId)
+            && listingAllowsBooking(resource.data.itemId, resource.data)
+            && ledgerAppendsBooking(
+              resource.data.itemId, bookingId, resource.data
+            )
+          )
+          ||
+          // Owner rejects a pending request (no ledger update).
+          (
+            resource.data.status == 'PENDING'
+            && request.resource.data.status == 'REJECTED'
+            && ownsItem(resource.data.itemId)
+          )
+          ||
+          // Borrower cancels before acceptance.
+          (
+            resource.data.status == 'PENDING'
+            && request.resource.data.status == 'CANCELLED'
+            && isUser(resource.data.borrowerId)
+          )
+          ||
+          // Borrower cancels an accepted booking before pickup.
+          (
+            resource.data.status == 'ACCEPTED'
+            && request.resource.data.status == 'CANCELLED'
+            && isUser(resource.data.borrowerId)
+            && resource.data.startTime > request.time.toMillis()
+            && ledgerRemovesBooking(
+              resource.data.itemId, bookingId, resource.data
+            )
+          )
+          ||
+          // Item owner confirms pickup during the booked period.
+          (
+            resource.data.status == 'ACCEPTED'
+            && request.resource.data.status == 'ACTIVE'
+            && ownsItem(resource.data.itemId)
+            && resource.data.startTime <= request.time.toMillis()
+            && request.time.toMillis() < resource.data.endTime
+            && reservation(bookingId, resource.data)
+              in ledger(get(itemPath(resource.data.itemId)).data)
+          )
+          ||
+          // Item owner confirms return and releases the reservation.
+          (
+            resource.data.status == 'ACTIVE'
+            && request.resource.data.status == 'COMPLETED'
+            && ownsItem(resource.data.itemId)
+            && resource.data.startTime <= request.time.toMillis()
+            && ledgerRemovesBooking(
+              resource.data.itemId, bookingId, resource.data
+            )
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    // -------------------------
+    // CONVERSATIONS / MESSAGES
+    // -------------------------
+
+    function conversationPath(conversationId) {
+      return /databases/$(database)/documents/conversations/$(conversationId);
+    }
+
+    function conversationMember(data) {
+      return signedIn()
+        && request.auth.uid in data.participantIds;
+    }
+
+    match /conversations/{conversationId} {
+      allow get, list: if conversationMember(resource.data);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'conversationId', 'itemId', 'itemName', 'ownerId',
+          'borrowerId', 'participantIds', 'createdAt', 'updatedAt',
+          'lastMessage', 'lastSenderId'
+        ])
+        && request.resource.data.keys().hasAll([
+          'conversationId', 'itemId', 'itemName', 'ownerId',
+          'borrowerId', 'participantIds', 'createdAt', 'updatedAt',
+          'lastMessage', 'lastSenderId'
+        ])
+        && request.resource.data.conversationId == conversationId
+        && request.resource.data.borrowerId == request.auth.uid
+        && request.resource.data.itemId is string
+        && exists(itemPath(request.resource.data.itemId))
+        && request.resource.data.ownerId ==
+          get(itemPath(request.resource.data.itemId)).data.ownerId
+        && request.resource.data.ownerId != request.auth.uid
+        && get(itemPath(request.resource.data.itemId)).data.status == 'ACTIVE'
+        && request.resource.data.itemName ==
+          get(itemPath(request.resource.data.itemId)).data.itemName
+        && request.resource.data.participantIds == [
+          request.resource.data.ownerId,
+          request.resource.data.borrowerId
+        ]
+        && request.resource.data.createdAt is int
+        && request.resource.data.updatedAt == request.resource.data.createdAt
+        && request.resource.data.lastMessage == ''
+        && request.resource.data.lastSenderId == '';
+
+      // Message metadata may be updated, but participant and item
+      // identities can never be changed.
+      allow update: if conversationMember(resource.data)
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly([
+            'lastMessage', 'lastSenderId', 'updatedAt'
+          ])
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasAll([
+            'lastMessage', 'lastSenderId', 'updatedAt'
+          ])
+        && request.resource.data.lastSenderId == request.auth.uid
+        && request.resource.data.lastMessage is string
+        && request.resource.data.lastMessage.size() > 0
+        && request.resource.data.lastMessage.size() <= 1200
+        && request.resource.data.updatedAt is int
+        && request.resource.data.updatedAt >= resource.data.updatedAt;
+
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        function parent() {
+          return get(conversationPath(conversationId)).data;
+        }
+
+        function isParticipant() {
+          return exists(conversationPath(conversationId))
+            && conversationMember(parent());
+        }
+
+        allow get, list: if isParticipant();
+
+        allow create: if isParticipant()
+          && request.resource.data.keys().hasOnly([
+            'messageId', 'senderId', 'recipientId', 'text', 'createdAt'
+          ])
+          && request.resource.data.keys().hasAll([
+            'messageId', 'senderId', 'recipientId', 'text', 'createdAt'
+          ])
+          && request.resource.data.messageId == messageId
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.recipientId == (
+            request.auth.uid == parent().ownerId
+              ? parent().borrowerId : parent().ownerId
+          )
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1200
+          && request.resource.data.createdAt is int
+          && request.resource.data.createdAt >= parent().createdAt
+          // The current Android implementation uses a batch to
+          // save the message and update its conversation preview.
+          && getAfter(conversationPath(conversationId)).data.lastMessage
+            == request.resource.data.text
+          && getAfter(conversationPath(conversationId)).data.lastSenderId
+            == request.auth.uid
+          && getAfter(conversationPath(conversationId)).data.updatedAt
+            == request.resource.data.createdAt;
+
+        allow update, delete: if false;
+      }
+    }
+
+    match /notifications/{notificationId} {
+      function validNotificationType(type) {
+        return type in [
+          'BOOKING_REQUEST', 'BOOKING_ACCEPTED',
+          'BOOKING_REJECTED', 'BOOKING_CANCELLED', 'NEW_MESSAGE'
+        ];
+      }
+
+      function bookingExists(bookingId) {
+        return bookingId is string
+          && exists(bookingPath(bookingId));
+      }
+
+      function bookingData(bookingId) {
+        return get(bookingPath(bookingId)).data;
+      }
+
+      function itemOwner(itemId) {
+        return get(itemPath(itemId)).data.ownerId;
+      }
+
+      function validBookingNotification(data) {
+        return bookingExists(data.relatedId)
+          && exists(itemPath(bookingData(data.relatedId).itemId))
+          && (
+            (data.type == 'BOOKING_REQUEST'
+              && bookingData(data.relatedId).status == 'PENDING'
+              && data.senderId == bookingData(data.relatedId).borrowerId
+              && data.recipientId == itemOwner(
+                bookingData(data.relatedId).itemId
+              ))
+            ||
+            (data.type == 'BOOKING_ACCEPTED'
+              && bookingData(data.relatedId).status == 'ACCEPTED'
+              && data.senderId == itemOwner(
+                bookingData(data.relatedId).itemId
+              )
+              && data.recipientId == bookingData(data.relatedId).borrowerId)
+            ||
+            (data.type == 'BOOKING_REJECTED'
+              && bookingData(data.relatedId).status == 'REJECTED'
+              && data.senderId == itemOwner(
+                bookingData(data.relatedId).itemId
+              )
+              && data.recipientId == bookingData(data.relatedId).borrowerId)
+            ||
+            (data.type == 'BOOKING_CANCELLED'
+              && bookingData(data.relatedId).status == 'CANCELLED'
+              && data.senderId == bookingData(data.relatedId).borrowerId
+              && data.recipientId == itemOwner(
+                bookingData(data.relatedId).itemId
+              ))
+          );
+      }
+
+      function validMessageNotification(data) {
+        return data.type == 'NEW_MESSAGE'
+          && exists(conversationPath(data.relatedId))
+          && data.senderId in
+            get(conversationPath(data.relatedId)).data.participantIds
+          && data.recipientId in
+            get(conversationPath(data.relatedId)).data.participantIds
+          && data.senderId != data.recipientId
+          && get(conversationPath(data.relatedId)).data.lastSenderId
+            == data.senderId;
+      }
+
+      allow read: if signedIn()
+        && resource.data.recipientId == request.auth.uid;
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'notificationId', 'recipientId', 'senderId',
+          'type', 'title', 'message', 'relatedId',
+          'isRead', 'createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'notificationId', 'recipientId', 'senderId',
+          'type', 'title', 'message', 'relatedId',
+          'isRead', 'createdAt'
+        ])
+        && request.resource.data.notificationId == notificationId
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.recipientId is string
+        && request.resource.data.recipientId != request.auth.uid
+        && validNotificationType(request.resource.data.type)
+        && request.resource.data.title is string
+        && request.resource.data.title.size() <= 100
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 500
+        && request.resource.data.relatedId is string
+        && request.resource.data.isRead == false
+        && request.resource.data.createdAt is int
+        && (
+          validBookingNotification(request.resource.data)
+          || validMessageNotification(request.resource.data)
+        );
+
+      allow update: if signedIn()
+        && resource.data.recipientId == request.auth.uid
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly(['isRead'])
+        && request.resource.data.isRead is bool;
+
+      allow delete: if false;
+    }
+
+    match /reviews/{reviewId} {
+      function bookingExists(bookingId) {
+        return bookingId is string
+          && exists(bookingPath(bookingId));
+      }
+
+      function bookingData(bookingId) {
+        return get(bookingPath(bookingId)).data;
+      }
+
+      function itemExists(itemId) {
+        return itemId is string
+          && exists(itemPath(itemId));
+      }
+
+      function ownerId(itemId) {
+        return get(itemPath(itemId)).data.ownerId;
+      }
+
+      function validReviewParticipants(data) {
+        return bookingExists(data.bookingId)
+          && bookingData(data.bookingId).status == 'COMPLETED'
+          && itemExists(bookingData(data.bookingId).itemId)
+          && bookingData(data.bookingId).borrowerId
+            != ownerId(bookingData(data.bookingId).itemId)
+          && (
+            (data.reviewerId == bookingData(data.bookingId).borrowerId
+              && data.revieweeId == ownerId(
+                bookingData(data.bookingId).itemId
+              )
+              && data.revieweeRole == 'OWNER')
+            ||
+            (data.reviewerId == ownerId(
+                bookingData(data.bookingId).itemId
+              )
+              && data.revieweeId == bookingData(data.bookingId).borrowerId
+              && data.revieweeRole == 'BORROWER')
+          );
+      }
+
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'reviewId', 'bookingId', 'reviewerId', 'revieweeId',
+          'revieweeRole', 'rating', 'comment', 'createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'reviewId', 'bookingId', 'reviewerId', 'revieweeId',
+          'revieweeRole', 'rating', 'comment', 'createdAt'
+        ])
+        && request.resource.data.reviewId == reviewId
+        && reviewId == request.resource.data.bookingId
+          + '_' + request.resource.data.reviewerId
+        && request.resource.data.reviewerId == request.auth.uid
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.comment is string
+        && request.resource.data.comment.size() <= 1000
+        && request.resource.data.createdAt is int
+        && validReviewParticipants(request.resource.data);
+
+      allow update, delete: if false;
+    }
+  }
+}

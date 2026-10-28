@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -8,6 +7,60 @@
     android:layout_height="match_parent"
     android:background="@android:color/white"
     android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="18dp"
+        android:paddingEnd="12dp"
+        android:background="@android:color/white">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Sharely"
+            android:textColor="@color/sharely_primary"
+            android:textSize="21sp"
+            android:textStyle="bold" />
+
+        <FrameLayout
+            android:layout_width="56dp"
+            android:layout_height="52dp">
+
+            <ImageButton
+                android:id="@+id/buttonNotifications"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="bottom|start"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Notifications"
+                android:padding="11dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_notification_bell"
+                android:tint="@color/sharely_primary" />
+
+            <TextView
+                android:id="@+id/textUnreadCount"
+                android:layout_width="wrap_content"
+                android:layout_height="20dp"
+                android:layout_gravity="top|end"
+                android:background="@drawable/bg_notification_badge"
+                android:gravity="center"
+                android:minWidth="20dp"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
+                android:text="1"
+                android:textColor="@android:color/white"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                android:clickable="false"
+                android:focusable="false" />
+        </FrameLayout>
+    </LinearLayout>
 
     <FrameLayout
         android:id="@+id/fragmentContainer"
@@ -24,5 +77,4 @@
         app:itemTextColor="@color/bottom_nav_color"
         app:labelVisibilityMode="labeled"
         app:menu="@menu/bottom_navigation_menu" />
-
 </LinearLayout>

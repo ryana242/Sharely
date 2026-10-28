@@ -46,6 +46,10 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".NotificationsActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".BookingListActivity"
             android:exported="false" />
 

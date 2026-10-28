@@ -1,25 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
         android:id="@+id/navHome"
-        android:icon="@android:drawable/ic_menu_view"
+        android:icon="@drawable/ic_nav_home"
         android:title="Home" />
 
     <item
         android:id="@+id/navBrowse"
-        android:icon="@android:drawable/ic_menu_search"
+        android:icon="@drawable/ic_nav_browse"
         android:title="Browse" />
 
     <item
         android:id="@+id/navActivity"
-        android:icon="@android:drawable/ic_menu_recent_history"
+        android:icon="@drawable/ic_nav_activity"
         android:title="Activity" />
 
     <item
+        android:id="@+id/navMessages"
+        android:icon="@drawable/ic_nav_messages"
+        android:title="Messages" />
+
+    <item
         android:id="@+id/navProfile"
-        android:icon="@android:drawable/ic_menu_myplaces"
+        android:icon="@drawable/ic_nav_profile"
         android:title="Me" />
 
 </menu>
