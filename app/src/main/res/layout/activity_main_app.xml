@@ -26,32 +26,40 @@
             android:textSize="21sp"
             android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/textUnreadCount"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@color/sharely_primary"
-            android:paddingStart="9dp"
-            android:paddingEnd="9dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp"
-            android:visibility="gone"
-            android:text="1"
-            android:textColor="@android:color/white"
-            android:textStyle="bold"
-            android:textSize="12sp" />
+        <FrameLayout
+            android:layout_width="56dp"
+            android:layout_height="52dp">
 
-        <Button
-            android:id="@+id/buttonNotifications"
-            android:layout_width="104dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="8dp"
-            android:minHeight="0dp"
-            android:minWidth="0dp"
-            android:text="Alerts"
-            android:textAllCaps="false"
-            android:textColor="@color/sharely_primary"
-            android:backgroundTint="@android:color/white" />
+            <ImageButton
+                android:id="@+id/buttonNotifications"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="bottom|start"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Notifications"
+                android:padding="11dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_notification_bell"
+                android:tint="@color/sharely_primary" />
+
+            <TextView
+                android:id="@+id/textUnreadCount"
+                android:layout_width="wrap_content"
+                android:layout_height="20dp"
+                android:layout_gravity="top|end"
+                android:background="@drawable/bg_notification_badge"
+                android:gravity="center"
+                android:minWidth="20dp"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
+                android:text="1"
+                android:textColor="@android:color/white"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                android:clickable="false"
+                android:focusable="false" />
+        </FrameLayout>
     </LinearLayout>
 
     <FrameLayout

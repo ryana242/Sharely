@@ -4,7 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
-import android.widget.Button;
+import android.widget.ImageButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -22,14 +22,16 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 public class MainAppActivity extends AppCompatActivity {
 
     public static final String EXTRA_CHAT_ITEM_ID = "sharely_chat_item_id";
+    public static final String EXTRA_CHAT_CONVERSATION_ID = "sharely_chat_conversation_id";
 
     private BottomNavigationView bottomNavigation;
     private boolean browseSearchFocusRequested = false;
     private String pendingChatItemId;
+    private String pendingConversationId;
     public static final String EXTRA_OPEN_MESSAGES = "sharely_open_messages";
     private ListenerRegistration unreadListener;
     private TextView unreadCount;
-    private Button notificationsButton;
+    private ImageButton notificationsButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,7 +81,11 @@ public class MainAppActivity extends AppCompatActivity {
                 fragment = new ActivityFragment();
 
             } else if (selected == R.id.navMessages) {
-                if (pendingChatItemId != null) {
+                if (pendingConversationId != null) {
+                    fragment = MessagesFragment.forConversation(pendingConversationId);
+                    pendingConversationId = null;
+                    pendingChatItemId = null;
+                } else if (pendingChatItemId != null) {
                     fragment = MessagesFragment.forItem(pendingChatItemId);
                     pendingChatItemId = null;
                 } else {
@@ -98,8 +104,11 @@ public class MainAppActivity extends AppCompatActivity {
         });
 
         if (savedInstanceState == null) {
+            String initialConversation = getIntent().getStringExtra(EXTRA_CHAT_CONVERSATION_ID);
             String initialItem = getIntent().getStringExtra(EXTRA_CHAT_ITEM_ID);
-            if (initialItem != null && !initialItem.trim().isEmpty()) {
+            if (initialConversation != null && !initialConversation.trim().isEmpty()) {
+                openMessagesForConversation(initialConversation);
+            } else if (initialItem != null && !initialItem.trim().isEmpty()) {
                 openMessagesForItem(initialItem);
             } else if (getIntent().getBooleanExtra(EXTRA_OPEN_MESSAGES, false)) {
                 bottomNavigation.setSelectedItemId(R.id.navMessages);
@@ -113,8 +122,11 @@ public class MainAppActivity extends AppCompatActivity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        String conversation = intent.getStringExtra(EXTRA_CHAT_CONVERSATION_ID);
         String itemId = intent.getStringExtra(EXTRA_CHAT_ITEM_ID);
-        if (itemId != null && !itemId.trim().isEmpty()) {
+        if (conversation != null && !conversation.trim().isEmpty()) {
+            openMessagesForConversation(conversation);
+        } else if (itemId != null && !itemId.trim().isEmpty()) {
             openMessagesForItem(itemId);
         } else if (intent.getBooleanExtra(EXTRA_OPEN_MESSAGES, false)) {
             bottomNavigation.setSelectedItemId(R.id.navMessages);
@@ -127,6 +139,7 @@ public class MainAppActivity extends AppCompatActivity {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) {
             unreadCount.setVisibility(View.GONE);
+            notificationsButton.setContentDescription("Notifications");
             return;
         }
         unreadListener = FirebaseFirestore.getInstance()
@@ -135,6 +148,7 @@ public class MainAppActivity extends AppCompatActivity {
                 .addSnapshotListener((snap, error) -> {
                     if (error != null || snap == null) {
                         unreadCount.setVisibility(View.GONE);
+                        notificationsButton.setContentDescription("Notifications");
                         return;
                     }
                     int count = 0;
@@ -144,6 +158,11 @@ public class MainAppActivity extends AppCompatActivity {
                     }
                     unreadCount.setVisibility(count == 0 ? View.GONE : View.VISIBLE);
                     unreadCount.setText(count > 99 ? "99+" : String.valueOf(count));
+                    notificationsButton.setContentDescription(
+                            count == 0
+                                    ? "Notifications"
+                                    : count + " unread notifications"
+                    );
                 });
     }
 
@@ -156,7 +175,19 @@ public class MainAppActivity extends AppCompatActivity {
         super.onStop();
     }
 
+    private void openMessagesForConversation(String id) {
+        pendingConversationId = id;
+        pendingChatItemId = null;
+        if (bottomNavigation.getSelectedItemId() == R.id.navMessages) {
+            loadFragment(MessagesFragment.forConversation(pendingConversationId));
+            pendingConversationId = null;
+        } else {
+            bottomNavigation.setSelectedItemId(R.id.navMessages);
+        }
+    }
+
     private void openMessagesForItem(String itemId) {
+        pendingConversationId = null;
         pendingChatItemId = itemId;
         if (bottomNavigation.getSelectedItemId() == R.id.navMessages) {
             loadFragment(MessagesFragment.forItem(pendingChatItemId));

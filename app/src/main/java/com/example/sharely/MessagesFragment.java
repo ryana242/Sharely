@@ -1,5 +1,6 @@
 package com.example.sharely;
 
+import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -40,14 +41,25 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public class MessagesFragment extends Fragment {
 
     private static final String ARG_OPEN_ITEM_ID = "sharely_open_item_id";
+    private static final String ARG_OPEN_CONVERSATION_ID = "sharely_open_conversation_id";
+
+    public static MessagesFragment forConversation(String conversationId) {
+        MessagesFragment fragment = new MessagesFragment();
+        Bundle args = new Bundle();
+        args.putString(ARG_OPEN_CONVERSATION_ID, conversationId);
+        fragment.setArguments(args);
+        return fragment;
+    }
 
     public static MessagesFragment forItem(String itemId) {
         MessagesFragment fragment = new MessagesFragment();
@@ -62,6 +74,10 @@ public class MessagesFragment extends Fragment {
 
     private ListenerRegistration inboxListener;
     private ListenerRegistration messageListener;
+    private ListenerRegistration unreadNotificationListener;
+    private final Map<String, Integer> unreadByConversation = new HashMap<>();
+    private final Set<String> markingReadIds = new HashSet<>();
+    private final List<DocumentSnapshot> inboxDocuments = new ArrayList<>();
 
     private FrameLayout body;
     private LinearLayout header;
@@ -69,7 +85,9 @@ public class MessagesFragment extends Fragment {
     private String conversationId;
     private String recipientId;
     private String itemTitle;
+    private String currentItemId;
     private boolean sending;
+    private boolean threadLoaded;
 
     private final int green = Color.rgb(23, 107, 82);
     private final int ink = Color.rgb(18, 61, 49);
@@ -166,12 +184,16 @@ public class MessagesFragment extends Fragment {
             conversationId = state.getString("conversationId");
             recipientId = state.getString("recipientId");
             itemTitle = state.getString("itemTitle");
+            currentItemId = state.getString("currentItemId");
         }
 
         if (uid == null) {
             showNotice("Sign in to read and send messages.");
         } else if (conversationId != null) {
             showThread();
+        } else if (getArguments() != null
+                && getArguments().getString(ARG_OPEN_CONVERSATION_ID) != null) {
+            openLinkedConversation(getArguments().getString(ARG_OPEN_CONVERSATION_ID));
         } else if (getArguments() != null
                 && getArguments().getString(ARG_OPEN_ITEM_ID) != null) {
             openListingFromItemDetails(
@@ -185,11 +207,37 @@ public class MessagesFragment extends Fragment {
     }
 
     @Override
+    public void onStart() {
+        super.onStart();
+        if (uid != null) {
+            startUnreadNotificationListener();
+            if (conversationId != null) markOpenThreadRead();
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (conversationId != null) markOpenThreadRead();
+    }
+
+    @Override
+    public void onStop() {
+        // Don't mark messages as read when another Activity covers the chat.
+        if (unreadNotificationListener != null) {
+            unreadNotificationListener.remove();
+            unreadNotificationListener = null;
+        }
+        super.onStop();
+    }
+
+    @Override
     public void onSaveInstanceState(@NonNull Bundle out) {
         super.onSaveInstanceState(out);
         out.putString("conversationId", conversationId);
         out.putString("recipientId", recipientId);
         out.putString("itemTitle", itemTitle);
+        out.putString("currentItemId", currentItemId);
     }
 
     private void stopListeners() {
@@ -206,6 +254,13 @@ public class MessagesFragment extends Fragment {
     @Override
     public void onDestroyView() {
         stopListeners();
+        if (unreadNotificationListener != null) {
+            unreadNotificationListener.remove();
+            unreadNotificationListener = null;
+        }
+        unreadByConversation.clear();
+        markingReadIds.clear();
+        inboxDocuments.clear();
         body = null;
         header = null;
         super.onDestroyView();
@@ -248,6 +303,8 @@ public class MessagesFragment extends Fragment {
         conversationId = null;
         recipientId = null;
         itemTitle = null;
+        currentItemId = null;
+        threadLoaded = false;
 
         header.removeAllViews();
 
@@ -284,39 +341,121 @@ public class MessagesFragment extends Fragment {
                         return;
                     }
 
-                    LinearLayout list = verticalContent();
-
-                    if (snapshot == null || snapshot.isEmpty()) {
-                        TextView empty = text(
-                                "No conversations yet.\n"
-                                        + "Tap New chat to message an item owner.",
-                                16,
-                                muted,
-                                false
-                        );
-                        empty.setGravity(Gravity.CENTER);
-                        empty.setPadding(
-                                dp(14), dp(90), dp(14), 0
-                        );
-                        list.addView(empty);
-                        return;
+                    inboxDocuments.clear();
+                    if (snapshot != null) {
+                        inboxDocuments.addAll(snapshot.getDocuments());
                     }
+                    renderInbox();
+                });
+    }
 
-                    List<DocumentSnapshot> docs =
-                            new ArrayList<>(snapshot.getDocuments());
+    private void renderInbox() {
+        if (body == null || conversationId != null) return;
+        LinearLayout list = verticalContent();
+        if (inboxDocuments.isEmpty()) {
+            TextView empty = text(
+                    "No conversations yet.\nTap New chat to message an item owner.",
+                    16, muted, false);
+            empty.setGravity(Gravity.CENTER);
+            empty.setPadding(dp(14), dp(90), dp(14), 0);
+            list.addView(empty);
+            return;
+        }
+        List<DocumentSnapshot> docs = new ArrayList<>(inboxDocuments);
+        Collections.sort(docs, (a, b) -> Long.compare(
+                number(b, "updatedAt"), number(a, "updatedAt")));
+        for (DocumentSnapshot doc : docs) addConversationCard(list, doc);
+    }
 
-                    Collections.sort(
-                            docs,
-                            (a, b) -> Long.compare(
-                                    number(b, "updatedAt"),
-                                    number(a, "updatedAt")
-                            )
-                    );
+    /** Incoming message notifications are the current source of unread state.
+     * No message or conversation schema change is required. */
+    private void startUnreadNotificationListener() {
+        if (unreadNotificationListener != null || uid == null) return;
+        unreadNotificationListener = db.collection("notifications")
+                .whereEqualTo("recipientId", uid)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (!isAdded() || body == null || error != null || snapshot == null) return;
+                    Map<String, Integer> latest = new HashMap<>();
+                    for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                        if (!"NEW_MESSAGE".equals(doc.getString("type"))
+                                || !Boolean.FALSE.equals(doc.getBoolean("isRead"))) continue;
+                        String linkedConversation = doc.getString("relatedId");
+                        if (linkedConversation == null || linkedConversation.isEmpty()) continue;
+                        Integer count = latest.get(linkedConversation);
+                        latest.put(linkedConversation, count == null ? 1 : count + 1);
+                        if (linkedConversation.equals(conversationId) && threadLoaded && isResumed()) {
+                            markIncomingNotificationRead(doc);
+                        }
+                    }
+                    unreadByConversation.clear();
+                    unreadByConversation.putAll(latest);
+                    if (conversationId == null) renderInbox();
+                });
+    }
 
-                    for (DocumentSnapshot doc : docs) {
-                        addConversationCard(list, doc);
+    private void markIncomingNotificationRead(DocumentSnapshot doc) {
+        // Only the notification recipient can update its isRead field.
+        if (!markingReadIds.add(doc.getId())) return;
+        doc.getReference().update("isRead", true)
+                .addOnCompleteListener(task -> markingReadIds.remove(doc.getId()));
+    }
+
+    private void markOpenThreadRead() {
+        if (uid == null || conversationId == null || !threadLoaded || !isResumed()) return;
+        // Refresh the unread records immediately when a thread opens;
+        // the listener also handles notifications that arrive while it is open.
+        final String openId = conversationId;
+        db.collection("notifications")
+                .whereEqualTo("recipientId", uid)
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    if (!isResumed() || !openId.equals(conversationId)) return;
+                    for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                        if ("NEW_MESSAGE".equals(doc.getString("type"))
+                                && Boolean.FALSE.equals(doc.getBoolean("isRead"))
+                                && openId.equals(doc.getString("relatedId"))) {
+                            markIncomingNotificationRead(doc);
+                        }
                     }
                 });
+    }
+
+    private void openLinkedConversation(String linkedId) {
+        if (linkedId == null || linkedId.trim().isEmpty()) {
+            showInbox();
+            return;
+        }
+        showNotice("Opening conversation...");
+        db.collection("conversations").document(linkedId).get()
+                .addOnSuccessListener(doc -> {
+                    if (!isAdded() || body == null) return;
+                    String owner = doc.getString("ownerId");
+                    String borrower = doc.getString("borrowerId");
+                    if (!doc.exists() || (!uid.equals(owner) && !uid.equals(borrower))) {
+                        toast("Conversation not available.");
+                        showInbox();
+                        return;
+                    }
+                    String other = uid.equals(owner) ? borrower : owner;
+                    openThread(doc.getId(), other, doc.getString("itemName"),
+                            doc.getString("itemId"));
+                })
+                .addOnFailureListener(error -> {
+                    if (isAdded() && body != null) {
+                        toast("Unable to open conversation: " + error.getMessage());
+                        showInbox();
+                    }
+                });
+    }
+
+    private void viewItem(String id) {
+        if (id == null || id.trim().isEmpty() || !isAdded()) {
+            toast("This listing is unavailable.");
+            return;
+        }
+        Intent intent = new Intent(requireContext(), ItemDetailsActivity.class);
+        intent.putExtra("itemId", id);
+        startActivity(intent);
     }
 
     private long number(DocumentSnapshot document, String key) {
@@ -347,6 +486,9 @@ public class MessagesFragment extends Fragment {
         }
 
         final String conversationItem = label;
+        final String linkedItemId = document.getString("itemId");
+        int unseen = unreadByConversation.containsKey(document.getId())
+                ? unreadByConversation.get(document.getId()) : 0;
 
         LinearLayout card = new LinearLayout(requireContext());
         card.setOrientation(LinearLayout.VERTICAL);
@@ -355,7 +497,7 @@ public class MessagesFragment extends Fragment {
         );
         card.setBackground(
                 shape(
-                        Color.WHITE,
+                        unseen > 0 ? pale : Color.WHITE,
                         Color.rgb(215, 232, 225),
                         14
                 )
@@ -366,11 +508,19 @@ public class MessagesFragment extends Fragment {
         params.bottomMargin = dp(12);
         list.addView(card, params);
 
-        TextView name = text(
-                "Sharely member · " + conversationItem,
-                16, ink, true
-        );
+        TextView name = text("Sharely member", 16, ink, true);
         card.addView(name);
+
+        TextView itemLink = text("View item: " + conversationItem + "  ›", 14, green, true);
+        itemLink.setPadding(0, dp(5), 0, dp(6));
+        itemLink.setOnClickListener(v -> viewItem(linkedItemId));
+        card.addView(itemLink);
+
+        if (unseen > 0) {
+            TextView unread = text("●  " + unseen + " unread message"
+                    + (unseen == 1 ? "" : "s"), 12, green, true);
+            card.addView(unread);
+        }
 
         TextView snippet = text(preview, 14, muted, false);
         snippet.setMaxLines(2);
@@ -385,7 +535,8 @@ public class MessagesFragment extends Fragment {
                 v -> openThread(
                         document.getId(),
                         peer,
-                        conversationItem
+                        conversationItem,
+                        linkedItemId
                 )
         );
 
@@ -398,7 +549,7 @@ public class MessagesFragment extends Fragment {
                     String person = user.getString("name");
                     if (person != null && !person.trim().isEmpty()) {
                         name.setText(
-                                person.trim() + " · " + conversationItem
+                                person.trim()
                         );
                     }
                 });
@@ -533,7 +684,7 @@ public class MessagesFragment extends Fragment {
         // fails and we then read the existing participant-only document.
         ref.set(data).addOnSuccessListener(unused -> {
             if (isAdded()) {
-                openThread(id, owner, name);
+                openThread(id, owner, name, item.getId());
             }
         }).addOnFailureListener(createError ->
                 ref.get()
@@ -549,7 +700,7 @@ public class MessagesFragment extends Fragment {
                                 return;
                             }
 
-                            openThread(id, owner, name);
+                            openThread(id, owner, name, item.getId());
                         })
                         .addOnFailureListener(error -> {
                             if (!isAdded()) return;
@@ -562,12 +713,14 @@ public class MessagesFragment extends Fragment {
     private void openThread(
             String id,
             String peer,
-            String label
+            String label,
+            String linkedItemId
     ) {
         stopListeners();
         conversationId = id;
         recipientId = peer;
         itemTitle = label;
+        currentItemId = linkedItemId;
         showThread();
     }
 
@@ -580,6 +733,7 @@ public class MessagesFragment extends Fragment {
         }
 
         stopListeners();
+        threadLoaded = false;
         header.removeAllViews();
 
         Button back = button("‹ Inbox", false);
@@ -600,6 +754,17 @@ public class MessagesFragment extends Fragment {
                 new LinearLayout.LayoutParams(0, -2, 1);
         h.leftMargin = dp(12);
         header.addView(heading, h);
+        Button viewProduct = button("View item", false);
+        header.addView(viewProduct, new LinearLayout.LayoutParams(dp(93), dp(48)));
+        viewProduct.setOnClickListener(v -> viewItem(currentItemId));
+        if (currentItemId == null) {
+            db.collection("conversations").document(conversationId).get()
+                    .addOnSuccessListener(doc -> {
+                        if (!isAdded() || header == null || !doc.getId().equals(conversationId)) return;
+                        currentItemId = doc.getString("itemId");
+                    });
+        }
+        markOpenThreadRead();
         final String currentPeer = recipientId;
         final String currentConversation = conversationId;
         final String currentItem = itemTitle == null ? "Chat" : itemTitle;
@@ -706,6 +871,11 @@ public class MessagesFragment extends Fragment {
                         );
                         return;
                     }
+
+                    // Only acknowledge unread notifications once this thread
+                    // has been loaded successfully for the signed-in participant.
+                    threadLoaded = true;
+                    markOpenThreadRead();
 
                     if (snapshot == null || snapshot.isEmpty()) {
                         TextView empty = text(

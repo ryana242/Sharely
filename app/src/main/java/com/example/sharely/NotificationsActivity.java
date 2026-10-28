@@ -587,10 +587,7 @@ public class NotificationsActivity extends AppCompatActivity {
                     MainAppActivity.class
             );
 
-            intent.putExtra(
-                    MainAppActivity.EXTRA_OPEN_MESSAGES,
-                    true
-            );
+            intent.putExtra(MainAppActivity.EXTRA_CHAT_CONVERSATION_ID, notification.getRelatedId());
 
             intent.addFlags(
                     Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -627,7 +624,10 @@ public class NotificationsActivity extends AppCompatActivity {
 
         intent.putExtra("type", mode);
 
+        intent.putExtra(BookingListActivity.EXTRA_FOCUS_BOOKING_ID, notification.getRelatedId());
+
         startActivity(intent);
+        finish();
 
         // Going back from the booking screen now takes
         // the user to Main, not back into Notifications.

@@ -273,7 +273,7 @@ public class ListingListActivity
 
             addItemCard(
                     item,
-                    false
+                    true
             );
 
 

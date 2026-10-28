@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 public class BookingListActivity extends AppCompatActivity {
+    public static final String EXTRA_FOCUS_BOOKING_ID = "sharely_focus_booking_id";
     private LinearLayout container;
     private TextView titleView;
     private TextView countView;
@@ -268,11 +269,34 @@ public class BookingListActivity extends AppCompatActivity {
             container.addView(empty);
             return;
         }
+        String focusId = getIntent().getStringExtra(EXTRA_FOCUS_BOOKING_ID);
+        boolean focusedFound = false;
         for (Booking booking : bookings) {
             Item item = knownItems == null
                     ? null
                     : knownItems.get(booking.getItemId());
             addCard(booking, item, ownerMode);
+            if (focusId != null && focusId.equals(booking.getBookingId())) {
+                focusedFound = true;
+                View focus = container.getChildAt(container.getChildCount() - 1);
+                focus.setBackgroundColor(0xFFEAF7EE);
+                focus.post(() -> {
+                    android.view.ViewParent parent = container.getParent();
+                    while (parent != null && !(parent instanceof android.widget.ScrollView)) {
+                        parent = parent.getParent();
+                    }
+                    if (parent instanceof android.widget.ScrollView) {
+                        ((android.widget.ScrollView) parent).smoothScrollTo(0, container.getTop() + focus.getTop());
+                    }
+                });
+            }
+        }
+        if (focusId != null && !focusedFound) {
+            TextView hint = new TextView(this);
+            hint.setText("This booking is no longer in this section. Check your booking history or requests.");
+            hint.setTextSize(14);
+            hint.setTextColor(getColor(R.color.sharely_text_secondary));
+            container.addView(hint, 0);
         }
     }
     private String date(long millis) {
