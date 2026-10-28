@@ -155,21 +155,13 @@ public class NotificationsActivity extends SharelyChromeActivity {
 
         // Back button
 
-        Button back = new Button(this);
-
-        back.setAllCaps(false);
-        back.setTextSize(15);
-        back.setTextColor(GREEN);
-
-        back.setBackgroundTintList(
-                ColorStateList.valueOf(Color.WHITE)
-        );
-
-        back.setMinHeight(dp(48));
-        back.setMinimumHeight(dp(48));
-        back.setText("");
-        back.setBackgroundTintList(null);
+        android.widget.ImageButton back = new android.widget.ImageButton(this);
         back.setBackgroundResource(R.drawable.bg_sharely_back);
+        back.setBackgroundTintList(null);
+        back.setImageResource(R.drawable.ic_sharely_back);
+        back.setImageTintList(ColorStateList.valueOf(GREEN));
+        back.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+        back.setPadding(dp(12), dp(12), dp(12), dp(12));
         back.setContentDescription("Back");
         heading.addView(back, new LinearLayout.LayoutParams(dp(48), dp(48)));
 

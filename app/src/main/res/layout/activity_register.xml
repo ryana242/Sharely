@@ -18,20 +18,18 @@
 
         <!-- Back -->
 
-        <TextView
-            android:id="@+id/backButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:text=""
-            android:textColor="@color/sharely_text_primary"
-            android:textSize="26sp"
-            android:background="@drawable/bg_sharely_back"
-            android:backgroundTint="@null"
-            android:padding="0dp"
-            android:contentDescription="Back" />
+        <ImageButton
+                android:id="@+id/backButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_sharely_back"
+                android:backgroundTint="@null"
+                android:src="@drawable/ic_sharely_back"
+                android:scaleType="centerInside"
+                android:padding="12dp"
+                android:contentDescription="Back"
+                android:clickable="true"
+                android:focusable="true" />
 
 
         <!-- Brand -->

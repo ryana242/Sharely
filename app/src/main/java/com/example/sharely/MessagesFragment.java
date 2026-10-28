@@ -514,6 +514,9 @@ public class MessagesFragment extends Fragment {
         TextView itemLink = text(conversationItem, 14, green, true);
         itemLink.setPadding(0, dp(5), 0, dp(6));
         itemLink.setContentDescription("Open item details: " + conversationItem);
+        itemLink.setClickable(true);
+        itemLink.setFocusable(true);
+        itemLink.setContentDescription("View item " + conversationItem);
         itemLink.setOnClickListener(v -> viewItem(linkedItemId));
         card.addView(itemLink);
 
@@ -737,10 +740,14 @@ public class MessagesFragment extends Fragment {
         threadLoaded = false;
         header.removeAllViews();
 
-        Button back = button("", false);
-        back.setBackgroundTintList(null);
+        android.widget.ImageButton back = new android.widget.ImageButton(requireContext());
         back.setBackgroundResource(R.drawable.bg_sharely_back);
-        back.setContentDescription("Back to inbox");
+        back.setBackgroundTintList(null);
+        back.setImageResource(R.drawable.ic_sharely_back);
+        back.setImageTintList(android.content.res.ColorStateList.valueOf(green));
+        back.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+        back.setPadding(dp(12), dp(12), dp(12), dp(12));
+        back.setContentDescription("Back to messages");
         header.addView(
                 back,
                 new LinearLayout.LayoutParams(dp(48), dp(48))
@@ -758,6 +765,8 @@ public class MessagesFragment extends Fragment {
         titleColumn.setOrientation(LinearLayout.VERTICAL);
         heading.setTextColor(green);
         heading.setContentDescription("Open item details");
+        heading.setClickable(true);
+        heading.setFocusable(true);
         heading.setOnClickListener(v -> viewItem(currentItemId));
         titleColumn.addView(heading);
         TextView peerLabel = text("Conversation", 12, muted, false);

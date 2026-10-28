@@ -89,7 +89,7 @@ public class AddItemActivity extends SharelyChromeActivity {
         photoPreviewContainer = findViewById(R.id.photoPreviewContainer);
         photoPreviewScroll = findViewById(R.id.photoPreviewScroll);
 
-        Button backButton = findViewById(R.id.buttonBack);
+        android.view.View backButton = findViewById(R.id.buttonBack);
         Button addPhotoButton = findViewById(R.id.buttonAddPhoto);
         Button setAvailabilityButton = findViewById(R.id.buttonSetAvailability);
 
