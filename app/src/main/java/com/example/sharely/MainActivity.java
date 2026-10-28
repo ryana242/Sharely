@@ -2,117 +2,55 @@ package com.example.sharely;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.TextView;
-import android.widget.Toast;
-
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-
+/** Launcher welcome screen with a lightweight, non-blocking brand entrance animation. */
 public class MainActivity extends AppCompatActivity {
-
-    private FirebaseAuth firebaseAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        firebaseAuth = FirebaseAuth.getInstance();
-
-//        Button browseButton = findViewById(R.id.buttonBrowse);
-//        Button listItemButton = findViewById(R.id.buttonListItem);
-        TextView loginButton = findViewById(R.id.buttonLogin);
-        TextView registerButton = findViewById(R.id.buttonRegister);
-
-        // Browse does not require login
-//        browseButton.setOnClickListener(v -> {
-//
-//            Intent intent = new Intent(
-//                    MainActivity.this,
-//                    BrowseActivity.class
-//            );
-//
-//            startActivity(intent);
-//        });
-
-        // Listing an item requires login
-//        listItemButton.setOnClickListener(v -> {
-//
-//            FirebaseUser user = firebaseAuth.getCurrentUser();
-//
-//            if (user != null && user.isEmailVerified()) {
-//
-//                Intent intent = new Intent(
-//                        MainActivity.this,
-//                        AddItemActivity.class
-//                );
-//
-//                startActivity(intent);
-//
-//            } else {
-//
-//                Toast.makeText(
-//                        MainActivity.this,
-//                        "Please login before listing an item",
-//                        Toast.LENGTH_SHORT
-//                ).show();
-//
-//                Intent intent = new Intent(
-//                        MainActivity.this,
-//                        LoginActivity.class
-//                );
-//
-//                startActivity(intent);
-//            }
-//        });
-
-        // Login
-        loginButton.setOnClickListener(v -> {
-
-            Intent intent = new Intent(
-                    MainActivity.this,
-                    LoginActivity.class
-            );
-
-            startActivity(intent);
+        View root = findViewById(R.id.main);
+        ViewCompat.setOnApplyWindowInsetsListener(root, (view, insets) -> {
+            Insets safe = insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars()
+                            | WindowInsetsCompat.Type.displayCutout());
+            view.setPadding(safe.left, safe.top, safe.right, safe.bottom);
+            return insets;
         });
+        ViewCompat.requestApplyInsets(root);
 
-        // Register
-        registerButton.setOnClickListener(v -> {
+        TextView login = findViewById(R.id.buttonLogin);
+        TextView register = findViewById(R.id.buttonRegister);
+        login.setOnClickListener(v -> startActivity(
+                new Intent(this, LoginActivity.class)));
+        register.setOnClickListener(v -> startActivity(
+                new Intent(this, RegisterActivity.class)));
 
-            Intent intent = new Intent(
-                    MainActivity.this,
-                    RegisterActivity.class
-            );
+        if (savedInstanceState == null) {
+            View mark = findViewById(R.id.welcomeLogo);
+            View wordmark = findViewById(R.id.welcomeWordmark);
+            // Uses system animation scale, and does not delay authentication.
+            mark.setAlpha(0f);
+            mark.setScaleX(0.88f);
+            mark.setScaleY(0.88f);
+            mark.setTranslationY(18f * getResources().getDisplayMetrics().density);
+            mark.animate().alpha(1f).scaleX(1f).scaleY(1f)
+                    .translationY(0f).setDuration(600).start();
 
-            startActivity(intent);
-        });
-
-        ViewCompat.setOnApplyWindowInsetsListener(
-                findViewById(R.id.main),
-                (v, insets) -> {
-
-                    Insets systemBars = insets.getInsets(
-                            WindowInsetsCompat.Type.systemBars()
-                    );
-
-                    v.setPadding(
-                            systemBars.left,
-                            systemBars.top,
-                            systemBars.right,
-                            systemBars.bottom
-                    );
-
-                    return insets;
-                }
-        );
+            wordmark.setAlpha(0f);
+            wordmark.setTranslationY(9f * getResources().getDisplayMetrics().density);
+            wordmark.animate().alpha(1f).translationY(0f)
+                    .setStartDelay(160).setDuration(560).start();
+        }
     }
 }

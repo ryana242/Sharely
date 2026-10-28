@@ -35,7 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-public class BookingListActivity extends AppCompatActivity {
+public class BookingListActivity extends SharelyChromeActivity {
     public static final String EXTRA_FOCUS_BOOKING_ID = "sharely_focus_booking_id";
     private LinearLayout container;
     private TextView titleView;
@@ -228,6 +228,17 @@ public class BookingListActivity extends AppCompatActivity {
                 }
         );
     }
+    private void openBookedItem(String itemId) {
+        if (itemId == null || itemId.trim().isEmpty()) {
+            Toast.makeText(this, "Item unavailable", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        android.content.Intent intent = new android.content.Intent(
+                this, ItemDetailsActivity.class);
+        intent.putExtra("itemId", itemId);
+        startActivity(intent);
+    }
+
     private void renderList(
             List<Booking> bookings,
             Map<String, Item> knownItems,
@@ -325,7 +336,10 @@ public class BookingListActivity extends AppCompatActivity {
                 card.findViewById(R.id.textItemPrice);
         Button details =
                 card.findViewById(R.id.buttonViewDetails);
-        details.setVisibility(View.GONE);
+        details.setVisibility(View.VISIBLE);
+        details.setText("View item");
+        details.setOnClickListener(v -> openBookedItem(booking.getItemId()));
+        name.setOnClickListener(v -> openBookedItem(booking.getItemId()));
         status.setText(booking.getStatus().name());
         name.setText(
                 item == null

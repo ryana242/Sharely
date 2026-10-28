@@ -21,6 +21,8 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainAppActivity extends AppCompatActivity {
 
+    public static final String EXTRA_SELECT_TAB = "sharely_select_tab";
+
     public static final String EXTRA_CHAT_ITEM_ID = "sharely_chat_item_id";
     public static final String EXTRA_CHAT_CONVERSATION_ID = "sharely_chat_conversation_id";
 
@@ -69,6 +71,7 @@ public class MainAppActivity extends AppCompatActivity {
 
         bottomNavigation.setOnItemSelectedListener(item -> {
             int selected = item.getItemId();
+            SharelyScreenChrome.rememberTab(this, selected);
             Fragment fragment;
 
             if (selected == R.id.navHome) {
@@ -104,6 +107,12 @@ public class MainAppActivity extends AppCompatActivity {
         });
 
         if (savedInstanceState == null) {
+            int selectedFromScreen = getIntent().getIntExtra(
+                    EXTRA_SELECT_TAB, View.NO_ID);
+            if (selectedFromScreen != View.NO_ID
+                    && bottomNavigation.getMenu().findItem(selectedFromScreen) != null) {
+                bottomNavigation.setSelectedItemId(selectedFromScreen);
+            } else {
             String initialConversation = getIntent().getStringExtra(EXTRA_CHAT_CONVERSATION_ID);
             String initialItem = getIntent().getStringExtra(EXTRA_CHAT_ITEM_ID);
             if (initialConversation != null && !initialConversation.trim().isEmpty()) {
@@ -115,6 +124,7 @@ public class MainAppActivity extends AppCompatActivity {
             } else {
                 bottomNavigation.setSelectedItemId(R.id.navHome);
             }
+            }
         }
     }
 
@@ -122,6 +132,12 @@ public class MainAppActivity extends AppCompatActivity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        int requestedTab = intent.getIntExtra(EXTRA_SELECT_TAB, View.NO_ID);
+        if (requestedTab != View.NO_ID
+                && bottomNavigation.getMenu().findItem(requestedTab) != null) {
+            bottomNavigation.setSelectedItemId(requestedTab);
+            return;
+        }
         String conversation = intent.getStringExtra(EXTRA_CHAT_CONVERSATION_ID);
         String itemId = intent.getStringExtra(EXTRA_CHAT_ITEM_ID);
         if (conversation != null && !conversation.trim().isEmpty()) {

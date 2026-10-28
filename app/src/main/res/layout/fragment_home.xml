@@ -1,308 +1,312 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/homeMain"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/sharely_background"
-    android:fillViewport="true">
+    android:background="#FBFCFA"
+    android:fillViewport="true"
+    android:clipToPadding="false">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingLeft="22dp"
-        android:paddingTop="24dp"
-        android:paddingRight="22dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="21dp"
         android:paddingBottom="32dp">
 
-
-        <!-- Top bar -->
-
-        <LinearLayout
+        <!-- Editorial headline. Brand title lives once, in MainAppActivity. -->
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Sharely"
-                android:textColor="@color/sharely_primary"
-                android:textSize="30sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/buttonProfileHome"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="@drawable/card_surface"
-                android:gravity="center"
-                android:text="P"
-                android:textColor="@color/sharely_primary"
-                android:textSize="17sp"
-                android:textStyle="bold" />
-
-        </LinearLayout>
-
-
-        <!-- Greeting -->
+            android:text="MADE FOR YOUR NEIGHBOURHOOD"
+            android:textColor="@color/sharely_primary"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.12" />
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Welcome back"
+            android:layout_marginTop="12dp"
+            android:text="Good things,
+shared."
+            android:textColor="@color/sharely_text_primary"
+            android:fontFamily="sans-serif-black"
+            android:letterSpacing="-0.035"
+            android:lineSpacingExtra="-4dp"
+            android:textSize="36sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Find what you need. Share what you have."
             android:textColor="@color/sharely_text_secondary"
-            android:textSize="15sp" />
+            android:textSize="15sp"
+            android:fontFamily="sans-serif"
+            android:lineSpacingExtra="3dp" />
+
+        <!-- Hero: attention from hierarchy and space, not heavy decoration. -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="25dp"
+            android:minHeight="230dp"
+            android:background="@drawable/bg_home_hero">
+
+            <ImageView
+                android:layout_width="142dp"
+                android:layout_height="142dp"
+                android:layout_gravity="end|top"
+                android:layout_marginTop="-12dp"
+                android:layout_marginEnd="-23dp"
+                android:src="@drawable/sharely_mark"
+                android:alpha="0.13"
+                android:contentDescription="@null" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="25dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="BORROW BETTER"
+                    android:letterSpacing="0.13"
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="@color/sharely_primary"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="11dp"
+                    android:text="More living.
+Less buying."
+                    android:textColor="@color/sharely_text_primary"
+                    android:textSize="27sp"
+                    android:fontFamily="sans-serif-black"
+                    android:letterSpacing="-0.03" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="9dp"
+                    android:text="Borrow useful items from people close to you."
+                    android:textColor="@color/sharely_text_secondary"
+                    android:textSize="14sp"
+                    android:lineSpacingExtra="2dp" />
+
+                <LinearLayout
+                    android:id="@+id/buttonBrowseHome"
+                    android:layout_width="wrap_content"
+                    android:layout_height="50dp"
+                    android:layout_marginTop="20dp"
+                    android:background="@drawable/bg_home_cta"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="20dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="Explore nearby items">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Explore nearby"
+                        android:textColor="@android:color/white"
+                        android:textSize="14sp"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:text="→"
+                        android:textSize="20sp"
+                        android:textColor="@android:color/white" />
+                </LinearLayout>
+            </LinearLayout>
+        </FrameLayout>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="What would you like to do?"
+            android:layout_marginTop="28dp"
+            android:text="What are you looking for?"
             android:textColor="@color/sharely_text_primary"
-            android:textSize="27sp"
-            android:textStyle="bold" />
-
-
-        <!-- Main actions -->
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:orientation="horizontal">
-
-
-            <!-- Find -->
-
-            <LinearLayout
-                android:id="@+id/buttonBrowseHome"
-                android:layout_width="0dp"
-                android:layout_height="180dp"
-                android:layout_marginEnd="7dp"
-                android:layout_weight="1"
-                android:background="@drawable/action_card"
-                android:clickable="true"
-                android:focusable="true"
-                android:orientation="vertical"
-                android:padding="18dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Find"
-                    android:textColor="@color/sharely_primary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:text="Find something"
-                    android:textColor="@color/sharely_text_primary"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="7dp"
-                    android:text="Discover items available nearby."
-                    android:textColor="@color/sharely_text_secondary"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:gravity="bottom|end"
-                    android:text="→"
-                    android:textColor="@color/sharely_primary"
-                    android:textSize="24sp" />
-
-            </LinearLayout>
-
-
-            <!-- List -->
-
-            <LinearLayout
-                android:id="@+id/buttonListHome"
-                android:layout_width="0dp"
-                android:layout_height="180dp"
-                android:layout_marginStart="7dp"
-                android:layout_weight="1"
-                android:background="@drawable/action_card"
-                android:clickable="true"
-                android:focusable="true"
-                android:orientation="vertical"
-                android:padding="18dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Share"
-                    android:textColor="@color/sharely_primary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:text="List an item"
-                    android:textColor="@color/sharely_text_primary"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="7dp"
-                    android:text="Make something you own available to others."
-                    android:textColor="@color/sharely_text_secondary"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:gravity="bottom|end"
-                    android:text="→"
-                    android:textColor="@color/sharely_primary"
-                    android:textSize="24sp" />
-
-            </LinearLayout>
-
-        </LinearLayout>
-
-
-        <!-- Search -->
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:text="Search Sharely"
-            android:textColor="@color/sharely_text_primary"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            android:textSize="19sp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="-0.02" />
 
         <LinearLayout
             android:id="@+id/searchHome"
             android:layout_width="match_parent"
             android:layout_height="58dp"
             android:layout_marginTop="12dp"
-            android:background="@drawable/card_surface"
-            android:clickable="true"
-            android:focusable="true"
+            android:background="@drawable/bg_home_search"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingLeft="18dp"
-            android:paddingRight="18dp">
+            android:paddingStart="17dp"
+            android:paddingEnd="17dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="Search nearby items">
 
             <ImageView
                 android:layout_width="22dp"
                 android:layout_height="22dp"
-                android:contentDescription="Search"
-                android:src="@drawable/ic_search" />
+                android:src="@drawable/ic_search"
+                android:contentDescription="@null" />
 
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="14dp"
-                android:text="What are you looking for?"
+                android:layout_weight="1"
+                android:layout_marginStart="13dp"
+                android:text="Try tools, cameras, camping gear..."
+                android:singleLine="true"
+                android:ellipsize="end"
                 android:textColor="@color/sharely_text_secondary"
-                android:textSize="15sp" />
-
+                android:textSize="14sp" />
         </LinearLayout>
 
-
-        <!-- Nearby -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="29dp"
+            android:text="Make it yours"
+            android:textColor="@color/sharely_text_primary"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="-0.02"
+            android:textSize="19sp" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:gravity="center_vertical"
+            android:layout_marginTop="13dp"
             android:orientation="horizontal">
 
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Nearby"
-                android:textColor="@color/sharely_text_primary"
-                android:textSize="20sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/textSeeAll"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="See all"
-                android:textColor="@color/sharely_primary"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-        </LinearLayout>
-
-
-        <!-- Nearby item preview (not work yet)-->
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:background="@drawable/card_surface"
-            android:orientation="horizontal"
-            android:padding="14dp">
-
-            <View
-                android:layout_width="92dp"
-                android:layout_height="92dp"
-                android:background="@color/sharely_primary" />
-
             <LinearLayout
+                android:id="@+id/buttonListHome"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="16dp"
                 android:layout_weight="1"
-                android:orientation="vertical">
+                android:layout_height="158dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_home_action"
+                android:orientation="vertical"
+                android:padding="17dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="List an item to share">
 
                 <TextView
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Cordless Drill"
-                    android:textColor="@color/sharely_text_primary"
-                    android:textSize="17sp"
-                    android:textStyle="bold" />
-
+                    android:text="↗"
+                    android:textColor="@color/sharely_primary"
+                    android:textSize="23sp" />
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="5dp"
-                    android:text="$5 / day"
-                    android:textColor="@color/sharely_primary"
+                    android:text="List an item"
+                    android:textColor="@color/sharely_text_primary"
                     android:textSize="16sp"
-                    android:textStyle="bold" />
-
+                    android:fontFamily="sans-serif-medium" />
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="1.2 km away  ·  ★ 4.8"
+                    android:layout_marginTop="7dp"
+                    android:text="Let something useful find its next moment."
                     android:textColor="@color/sharely_text_secondary"
-                    android:textSize="13sp" />
-
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="2dp" />
             </LinearLayout>
 
+            <LinearLayout
+                android:id="@+id/buttonProfileHome"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="158dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_home_action"
+                android:orientation="vertical"
+                android:padding="17dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Open your profile">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/sharely_mark"
+                    android:contentDescription="@null" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:text="Your space"
+                    android:textColor="@color/sharely_text_primary"
+                    android:textSize="16sp"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="7dp"
+                    android:text="See your listings, bookings and ratings."
+                    android:textColor="@color/sharely_text_secondary"
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="2dp" />
+            </LinearLayout>
         </LinearLayout>
 
+        <!-- Live inventory is available through Browse; do not fake 'Nearby' listings. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="26dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="4dp">
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Around the corner"
+                    android:textSize="19sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="@color/sharely_text_primary" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:text="See what people nearby are sharing."
+                    android:textSize="13sp"
+                    android:textColor="@color/sharely_text_secondary" />
+            </LinearLayout>
+            <TextView
+                android:id="@+id/textSeeAll"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:gravity="center"
+                android:paddingStart="12dp"
+                android:paddingEnd="2dp"
+                android:text="Browse all →"
+                android:textColor="@color/sharely_primary"
+                android:textSize="14sp"
+                android:fontFamily="sans-serif-medium"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
     </LinearLayout>
-
 </ScrollView>

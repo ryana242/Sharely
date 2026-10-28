@@ -3,7 +3,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/white"
+    android:background="@drawable/bg_sharely_page"
     android:fillViewport="true">
 
     <LinearLayout
@@ -93,7 +93,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:background="@drawable/card_surface"
+                android:background="@drawable/bg_sharely_feature_card"
                 android:orientation="vertical"
                 android:padding="20dp">
 

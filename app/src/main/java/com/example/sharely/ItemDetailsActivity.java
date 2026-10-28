@@ -43,7 +43,7 @@ import java.util.Locale;
 import java.util.TreeSet;
 
 /** Item details and an inline reservation-aware, range-selection calendar. */
-public class ItemDetailsActivity extends AppCompatActivity {
+public class ItemDetailsActivity extends SharelyChromeActivity {
 
     private static final int GREEN = Color.rgb(23, 107, 82);
     private static final int INK = Color.rgb(18, 61, 49);

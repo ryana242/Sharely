@@ -24,7 +24,7 @@ import java.util.List;
 
 
 public class ListingListActivity
-        extends AppCompatActivity {
+        extends SharelyChromeActivity {
 
 
     private LinearLayout itemsContainer;

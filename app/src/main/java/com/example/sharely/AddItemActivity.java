@@ -37,7 +37,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
-public class AddItemActivity extends AppCompatActivity {
+public class AddItemActivity extends SharelyChromeActivity {
 
     private EditText itemName;
     private EditText description;
