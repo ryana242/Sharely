@@ -600,6 +600,18 @@ public class MessagesFragment extends Fragment {
                 new LinearLayout.LayoutParams(0, -2, 1);
         h.leftMargin = dp(12);
         header.addView(heading, h);
+        final String currentPeer = recipientId;
+        final String currentConversation = conversationId;
+        final String currentItem = itemTitle == null ? "Chat" : itemTitle;
+        db.collection("users").document(currentPeer).get()
+                .addOnSuccessListener(personDoc -> {
+                    if (!isAdded() || header == null
+                            || !currentConversation.equals(conversationId)) return;
+                    String peerName = personDoc.getString("name");
+                    if (peerName != null && !peerName.trim().isEmpty()) {
+                        heading.setText(peerName.trim() + " · " + currentItem);
+                    }
+                });
 
         body.removeAllViews();
 

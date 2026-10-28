@@ -15,6 +15,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.activity.OnBackPressedCallback;
 
 import com.example.sharely.data.NotificationRepository;
 import com.example.sharely.enums.NotificationType;
@@ -87,7 +88,13 @@ public class NotificationsActivity extends AppCompatActivity {
         back.setTextColor(GREEN);
         back.setBackgroundTintList(ColorStateList.valueOf(Color.WHITE));
         heading.addView(back, new LinearLayout.LayoutParams(dp(94), dp(48)));
-        back.setOnClickListener(v -> finish());
+        back.setOnClickListener(v -> returnToMain());
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                returnToMain();
+            }
+        });
 
         LinearLayout headingText = new LinearLayout(this);
         headingText.setOrientation(LinearLayout.VERTICAL);
@@ -217,6 +224,13 @@ public class NotificationsActivity extends AppCompatActivity {
                         });
             });
         }
+    }
+
+    private void returnToMain() {
+        Intent intent = new Intent(this, MainAppActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+        finish();
     }
 
     private void navigate(Notification n) {
