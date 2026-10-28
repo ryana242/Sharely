@@ -14,6 +14,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -178,15 +179,109 @@ public class BookingRepository {
                 .addOnFailureListener(listener::onFailure);
     }
 
+    /**
+     * Return booking conflicts visible to the signed-in user.
+     *
+     * The listing owner may read every booking for the item. Borrowers cannot:
+     * Firestore rules correctly prevent them from querying other borrowers'
+     * booking documents. For borrowers, use the public item's accepted
+     * reservation ledger plus their own booking history instead.
+     *
+     * Reservation placeholders deliberately contain no other borrower's UID.
+     */
     public void getBookingsByItem(
             String itemId,
             OnBookingsLoadedListener listener
     ) {
-        db.collection("bookings")
-                .whereEqualTo("itemId", itemId)
-                .get()
-                .addOnSuccessListener(snapshot ->
-                        deliverBookings(snapshot.getDocuments(), listener))
+        if (itemId == null || itemId.trim().isEmpty()) {
+            listener.onFailure(new IllegalArgumentException("Missing item ID"));
+            return;
+        }
+
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) {
+            listener.onFailure(new IllegalStateException("Please sign in"));
+            return;
+        }
+
+        String currentUid = user.getUid();
+
+        db.collection("items").document(itemId).get()
+                .addOnSuccessListener(item -> {
+                    if (!item.exists()) {
+                        listener.onFailure(new IllegalStateException("Item not found"));
+                        return;
+                    }
+
+                    if (currentUid.equals(item.getString("ownerId"))) {
+                        // Owners use this path to manage ALL booking requests.
+                        db.collection("bookings")
+                                .whereEqualTo("itemId", itemId)
+                                .get()
+                                .addOnSuccessListener(snapshot ->
+                                        deliverBookings(snapshot.getDocuments(), listener))
+                                .addOnFailureListener(listener::onFailure);
+                        return;
+                    }
+
+                    // A borrower must not attempt to query other users' bookings.
+                    final List<Map<String, Object>> acceptedReservations;
+                    try {
+                        acceptedReservations = readLedger(item);
+                    } catch (RuntimeException error) {
+                        listener.onFailure(error);
+                        return;
+                    }
+
+                    getBookingsByBorrower(currentUid, new OnBookingsLoadedListener() {
+                        @Override
+                        public void onSuccess(List<Booking> personalBookings) {
+                            Map<String, Booking> conflicts = new LinkedHashMap<>();
+
+                            for (Booking personal : personalBookings) {
+                                if (itemId.equals(personal.getItemId())) {
+                                    conflicts.put(personal.getBookingId(), personal);
+                                }
+                            }
+
+                            for (Map<String, Object> entry : acceptedReservations) {
+                                String reservationId = (String) entry.get("bookingId");
+                                long from = (Long) entry.get("startTime");
+                                long to = (Long) entry.get("endTime");
+
+                                Booking present = conflicts.get(reservationId);
+                                if (present != null) {
+                                    // A reserved booking must still have a blocking
+                                    // status; otherwise the ledger needs repair.
+                                    if (!present.blocksAvailability()
+                                            || present.getBookingSlot().getStartTime() != from
+                                            || present.getBookingSlot().getEndTime() != to) {
+                                        listener.onFailure(new IllegalStateException(
+                                                "Listing reservations need reconciliation"));
+                                        return;
+                                    }
+                                    continue;
+                                }
+
+                                Booking placeholder = new Booking(
+                                        reservationId,
+                                        "another-borrower",
+                                        itemId,
+                                        new AvailabilitySlot(from, to)
+                                );
+                                placeholder.acceptBooking();
+                                conflicts.put(reservationId, placeholder);
+                            }
+
+                            listener.onSuccess(new ArrayList<>(conflicts.values()));
+                        }
+
+                        @Override
+                        public void onFailure(Exception error) {
+                            listener.onFailure(error);
+                        }
+                    });
+                })
                 .addOnFailureListener(listener::onFailure);
     }
 
