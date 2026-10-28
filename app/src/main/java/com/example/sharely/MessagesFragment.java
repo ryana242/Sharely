@@ -164,11 +164,11 @@ public class MessagesFragment extends Fragment {
 
         LinearLayout root = new LinearLayout(requireContext());
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.WHITE);
+        root.setBackgroundResource(R.drawable.bg_sharely_page);
 
         header = new LinearLayout(requireContext());
         header.setGravity(Gravity.CENTER_VERTICAL);
-        header.setPadding(dp(18), dp(10), dp(18), dp(10));
+        header.setPadding(dp(20), dp(12), dp(20), dp(12));
         root.addView(
                 header,
                 new LinearLayout.LayoutParams(-1, dp(72))
@@ -511,8 +511,9 @@ public class MessagesFragment extends Fragment {
         TextView name = text("Sharely member", 16, ink, true);
         card.addView(name);
 
-        TextView itemLink = text("View item: " + conversationItem + "  ›", 14, green, true);
+        TextView itemLink = text(conversationItem, 14, green, true);
         itemLink.setPadding(0, dp(5), 0, dp(6));
+        itemLink.setContentDescription("Open item details: " + conversationItem);
         itemLink.setOnClickListener(v -> viewItem(linkedItemId));
         card.addView(itemLink);
 
@@ -736,10 +737,13 @@ public class MessagesFragment extends Fragment {
         threadLoaded = false;
         header.removeAllViews();
 
-        Button back = button("‹ Inbox", false);
+        Button back = button("", false);
+        back.setBackgroundTintList(null);
+        back.setBackgroundResource(R.drawable.bg_sharely_back);
+        back.setContentDescription("Back to inbox");
         header.addView(
                 back,
-                new LinearLayout.LayoutParams(dp(98), dp(48))
+                new LinearLayout.LayoutParams(dp(48), dp(48))
         );
         back.setOnClickListener(v -> showInbox());
 
@@ -750,13 +754,18 @@ public class MessagesFragment extends Fragment {
         heading.setSingleLine(true);
         heading.setEllipsize(TextUtils.TruncateAt.END);
 
+        LinearLayout titleColumn = new LinearLayout(requireContext());
+        titleColumn.setOrientation(LinearLayout.VERTICAL);
+        heading.setTextColor(green);
+        heading.setContentDescription("Open item details");
+        heading.setOnClickListener(v -> viewItem(currentItemId));
+        titleColumn.addView(heading);
+        TextView peerLabel = text("Conversation", 12, muted, false);
+        titleColumn.addView(peerLabel);
         LinearLayout.LayoutParams h =
                 new LinearLayout.LayoutParams(0, -2, 1);
         h.leftMargin = dp(12);
-        header.addView(heading, h);
-        Button viewProduct = button("View item", false);
-        header.addView(viewProduct, new LinearLayout.LayoutParams(dp(93), dp(48)));
-        viewProduct.setOnClickListener(v -> viewItem(currentItemId));
+        header.addView(titleColumn, h);
         if (currentItemId == null) {
             db.collection("conversations").document(conversationId).get()
                     .addOnSuccessListener(doc -> {
@@ -774,7 +783,7 @@ public class MessagesFragment extends Fragment {
                             || !currentConversation.equals(conversationId)) return;
                     String peerName = personDoc.getString("name");
                     if (peerName != null && !peerName.trim().isEmpty()) {
-                        heading.setText(peerName.trim() + " · " + currentItem);
+                        peerLabel.setText(peerName.trim());
                     }
                 });
 
@@ -782,7 +791,7 @@ public class MessagesFragment extends Fragment {
 
         LinearLayout page = new LinearLayout(requireContext());
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setBackgroundColor(Color.rgb(249, 252, 251));
+        page.setBackgroundResource(R.drawable.bg_sharely_page);
         body.addView(
                 page,
                 new FrameLayout.LayoutParams(-1, -1)

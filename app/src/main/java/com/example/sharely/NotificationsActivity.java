@@ -37,7 +37,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-public class NotificationsActivity extends AppCompatActivity {
+public class NotificationsActivity extends SharelyChromeActivity {
 
     private static final int GREEN = Color.rgb(23, 107, 82);
     private static final int INK = Color.rgb(18, 61, 49);
@@ -106,7 +106,7 @@ public class NotificationsActivity extends AppCompatActivity {
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.WHITE);
+        root.setBackgroundResource(R.drawable.bg_sharely_page);
 
         setContentView(root);
 
@@ -157,7 +157,6 @@ public class NotificationsActivity extends AppCompatActivity {
 
         Button back = new Button(this);
 
-        back.setText("‹ Back");
         back.setAllCaps(false);
         back.setTextSize(15);
         back.setTextColor(GREEN);
@@ -168,14 +167,11 @@ public class NotificationsActivity extends AppCompatActivity {
 
         back.setMinHeight(dp(48));
         back.setMinimumHeight(dp(48));
-
-        heading.addView(
-                back,
-                new LinearLayout.LayoutParams(
-                        dp(94),
-                        dp(48)
-                )
-        );
+        back.setText("");
+        back.setBackgroundTintList(null);
+        back.setBackgroundResource(R.drawable.bg_sharely_back);
+        back.setContentDescription("Back");
+        heading.addView(back, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
         back.setOnClickListener(
                 v -> returnToMain()
