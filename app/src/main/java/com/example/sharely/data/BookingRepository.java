@@ -2,6 +2,8 @@
 package com.example.sharely.data;
 
 import com.example.sharely.enums.BookingStatus;
+import com.example.sharely.service.NotificationService;
+import android.util.Log;
 import com.example.sharely.model.AvailabilitySlot;
 import com.example.sharely.model.Booking;
 import com.google.firebase.auth.FirebaseAuth;
@@ -18,6 +20,60 @@ import java.util.Map;
 public class BookingRepository {
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private final NotificationService notificationService = new NotificationService();
+    private static final String LOG_TAG = "SharelyBookingNotify";
+
+    // Notification failure never reverses a successfully saved booking.
+    private final com.example.sharely.data.NotificationRepository.OnNotificationSavedListener
+            notificationCallback =
+            new com.example.sharely.data.NotificationRepository.OnNotificationSavedListener() {
+                @Override public void onSuccess() { }
+                @Override public void onFailure(Exception error) {
+                    Log.w(LOG_TAG, "Notification could not be delivered", error);
+                }
+            };
+
+    private void notifyOwnerOfRequest(Booking booking) {
+        db.collection("items").document(booking.getItemId()).get()
+                .addOnSuccessListener(item -> {
+                    String ownerId = item.getString("ownerId");
+                    if (ownerId != null && !ownerId.equals(booking.getBorrowerId())) {
+                        notificationService.notifyBookingRequested(
+                                booking.getBookingId(), booking.getBorrowerId(),
+                                ownerId, notificationCallback);
+                    }
+                })
+                .addOnFailureListener(error ->
+                        Log.w(LOG_TAG, "Cannot resolve booking owner", error));
+    }
+
+    private void notifyBorrowerOfDecision(Booking booking, String ownerId,
+                                          boolean accepted) {
+        if (accepted) {
+            notificationService.notifyBookingAccepted(
+                    booking.getBookingId(), ownerId,
+                    booking.getBorrowerId(), notificationCallback);
+        } else {
+            notificationService.notifyBookingRejected(
+                    booking.getBookingId(), ownerId,
+                    booking.getBorrowerId(), notificationCallback);
+        }
+    }
+
+    private void notifyOwnerOfCancellation(Booking booking) {
+        db.collection("items").document(booking.getItemId()).get()
+                .addOnSuccessListener(item -> {
+                    String ownerId = item.getString("ownerId");
+                    if (ownerId != null && !ownerId.equals(booking.getBorrowerId())) {
+                        notificationService.notifyBookingCancelled(
+                                booking.getBookingId(), booking.getBorrowerId(),
+                                ownerId, notificationCallback);
+                    }
+                })
+                .addOnFailureListener(error ->
+                        Log.w(LOG_TAG, "Cannot resolve booking owner", error));
+    }
+
 
     private Booking documentToBooking(DocumentSnapshot document) {
         if (document == null || !document.exists()) return null;
@@ -103,7 +159,10 @@ public class BookingRepository {
         db.collection("bookings")
                 .document(booking.getBookingId())
                 .set(data)
-                .addOnSuccessListener(unused -> listener.onSuccess())
+                .addOnSuccessListener(unused -> {
+                    listener.onSuccess();
+                    notifyOwnerOfRequest(booking);
+                })
                 .addOnFailureListener(listener::onFailure);
     }
 
@@ -417,9 +476,10 @@ public class BookingRepository {
 
                                 return null;
 
-                            }).addOnSuccessListener(
-                                    unused -> listener.onSuccess()
-                            ).addOnFailureListener(listener::onFailure);
+                            }).addOnSuccessListener(unused -> {
+                                listener.onSuccess();
+                                notifyBorrowerOfDecision(selected, uid, accept);
+                            }).addOnFailureListener(listener::onFailure);
                         }
 
                         @Override
@@ -533,9 +593,10 @@ public class BookingRepository {
 
                 return null;
 
-            }).addOnSuccessListener(
-                    unused -> listener.onSuccess()
-            ).addOnFailureListener(listener::onFailure);
+            }).addOnSuccessListener(unused -> {
+                listener.onSuccess();
+                notifyOwnerOfCancellation(seen);
+            }).addOnFailureListener(listener::onFailure);
 
         }).addOnFailureListener(listener::onFailure);
     }

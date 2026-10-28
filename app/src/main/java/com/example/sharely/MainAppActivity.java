@@ -3,6 +3,12 @@ package com.example.sharely;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.TextView;
+import android.widget.Button;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -20,6 +26,10 @@ public class MainAppActivity extends AppCompatActivity {
     private BottomNavigationView bottomNavigation;
     private boolean browseSearchFocusRequested = false;
     private String pendingChatItemId;
+    public static final String EXTRA_OPEN_MESSAGES = "sharely_open_messages";
+    private ListenerRegistration unreadListener;
+    private TextView unreadCount;
+    private Button notificationsButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +59,11 @@ public class MainAppActivity extends AppCompatActivity {
         );
 
         bottomNavigation = findViewById(R.id.bottomNavigation);
+        unreadCount = findViewById(R.id.textUnreadCount);
+        notificationsButton = findViewById(R.id.buttonNotifications);
+        notificationsButton.setOnClickListener(v -> startActivity(
+                new Intent(this, NotificationsActivity.class)));
+
 
         bottomNavigation.setOnItemSelectedListener(item -> {
             int selected = item.getItemId();
@@ -86,6 +101,8 @@ public class MainAppActivity extends AppCompatActivity {
             String initialItem = getIntent().getStringExtra(EXTRA_CHAT_ITEM_ID);
             if (initialItem != null && !initialItem.trim().isEmpty()) {
                 openMessagesForItem(initialItem);
+            } else if (getIntent().getBooleanExtra(EXTRA_OPEN_MESSAGES, false)) {
+                bottomNavigation.setSelectedItemId(R.id.navMessages);
             } else {
                 bottomNavigation.setSelectedItemId(R.id.navHome);
             }
@@ -99,7 +116,44 @@ public class MainAppActivity extends AppCompatActivity {
         String itemId = intent.getStringExtra(EXTRA_CHAT_ITEM_ID);
         if (itemId != null && !itemId.trim().isEmpty()) {
             openMessagesForItem(itemId);
+        } else if (intent.getBooleanExtra(EXTRA_OPEN_MESSAGES, false)) {
+            bottomNavigation.setSelectedItemId(R.id.navMessages);
         }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) {
+            unreadCount.setVisibility(View.GONE);
+            return;
+        }
+        unreadListener = FirebaseFirestore.getInstance()
+                .collection("notifications")
+                .whereEqualTo("recipientId", user.getUid())
+                .addSnapshotListener((snap, error) -> {
+                    if (error != null || snap == null) {
+                        unreadCount.setVisibility(View.GONE);
+                        return;
+                    }
+                    int count = 0;
+                    for (com.google.firebase.firestore.DocumentSnapshot doc :
+                            snap.getDocuments()) {
+                        if (Boolean.FALSE.equals(doc.getBoolean("isRead"))) count++;
+                    }
+                    unreadCount.setVisibility(count == 0 ? View.GONE : View.VISIBLE);
+                    unreadCount.setText(count > 99 ? "99+" : String.valueOf(count));
+                });
+    }
+
+    @Override
+    protected void onStop() {
+        if (unreadListener != null) {
+            unreadListener.remove();
+            unreadListener = null;
+        }
+        super.onStop();
     }
 
     private void openMessagesForItem(String itemId) {
