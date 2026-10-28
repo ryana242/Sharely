@@ -28,7 +28,7 @@ public class LoginActivity extends AppCompatActivity {
 
         TextView loginButton = findViewById(R.id.loginButton);
         TextView registerButton = findViewById(R.id.registerButton);
-        TextView backButton = findViewById(R.id.backButton);
+        android.view.View backButton = findViewById(R.id.backButton);
 
         firebaseAuth = FirebaseAuth.getInstance();
 
