@@ -220,7 +220,10 @@ public class AddItemActivity extends SharelyChromeActivity {
             valid = false;
         }
         if (locationText.isEmpty()) {
-            location.setError("Location is required");
+            location.setError("Suburb is required");
+            valid = false;
+        } else if (locationText.matches(".*\\d+.*") || locationText.contains("@")) {
+            location.setError("Enter suburb only, never a street number or home address");
             valid = false;
         }
 

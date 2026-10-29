@@ -1,4 +1,3 @@
-
 {
   "firestore": {
     "database": "(default)",
@@ -11,5 +10,8 @@
     "firestore": {
       "port": 8080
     }
+  },
+  "functions": {
+    "source": "functions"
   }
 }

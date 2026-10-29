@@ -448,44 +448,14 @@ public class BookingListActivity extends SharelyChromeActivity {
                             )
                     )
             );
-        } else if (ownerMode
-                && current == BookingStatus.ACCEPTED
-                && now >= booking.getBookingSlot().getStartTime()
-                && now < booking.getBookingSlot().getEndTime()) {
-            addAction(
-                    actions,
-                    "Mark as started",
-                    true,
-                    () -> confirmAction(
-                            booking,
-                            "Start borrowing?",
-                            "Confirm the borrower has collected this item.",
-                            "Start",
-                            actions,
-                            cb -> bookingRepository.advanceBooking(
-                                    booking.getBookingId(),
-                                    cb
-                            )
-                    )
-            );
-        } else if (ownerMode
-                && current == BookingStatus.ACTIVE) {
-            addAction(
-                    actions,
-                    "Mark as returned",
-                    true,
-                    () -> confirmAction(
-                            booking,
-                            "Complete booking?",
-                            "Confirm the item has been returned.",
-                            "Complete",
-                            actions,
-                            cb -> bookingRepository.advanceBooking(
-                                    booking.getBookingId(),
-                                    cb
-                            )
-                    )
-            );
+        } else if (current == BookingStatus.ACCEPTED || current == BookingStatus.ACTIVE) {
+            addAction(actions, current == BookingStatus.ACCEPTED
+                    ? "Arrange pickup" : "Manage return", true, () -> {
+                android.content.Intent handover = new android.content.Intent(
+                        this, SharelyTransactionActivity.class);
+                handover.putExtra("bookingId", booking.getBookingId());
+                startActivity(handover);
+            });
         } else if (!ownerMode
                 && (current == BookingStatus.PENDING
                 || (current == BookingStatus.ACCEPTED
@@ -506,6 +476,14 @@ public class BookingListActivity extends SharelyChromeActivity {
                             )
                     )
             );
+        }
+        if (!ownerMode && current == BookingStatus.ACCEPTED
+                && now < booking.getBookingSlot().getStartTime()) {
+            addAction(actions, "Cancel booking", false, () -> confirmAction(
+                    booking, "Cancel booking?",
+                    "Release this reservation before the agreed start time?",
+                    "Cancel", actions,
+                    cb -> bookingRepository.cancelBooking(booking.getBookingId(),cb)));
         }
         if (actions.getChildCount() > 0) {
             ((LinearLayout) card).addView(actions);

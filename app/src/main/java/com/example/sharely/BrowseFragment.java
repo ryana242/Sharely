@@ -1,5 +1,25 @@
 package com.example.sharely;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationManager;
+import android.location.Geocoder;
+import android.location.Address;
+import android.os.Build;
+import androidx.core.content.ContextCompat;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import com.example.sharely.data.ReviewRepository;
+import com.example.sharely.enums.ReviewRole;
+import com.example.sharely.model.Review;
+import com.example.sharely.service.LocationService;
+import java.util.Map;
+import java.util.Set;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -55,6 +75,22 @@ public class BrowseFragment extends Fragment {
     private Double selectedMaxPrice = null;
 
     private Double selectedMaxDistanceKm = null;
+    private Double selectedMinRating = null;
+    private final Map<String,Double> ratingByOwner = new HashMap<>();
+    private final Map<String,Double> approxDistanceByItem = new HashMap<>();
+    private final ExecutorService geoExecutor = Executors.newSingleThreadExecutor();
+    private final LocationService locationMath = new LocationService();
+    private boolean loadingDistances;
+    private final ActivityResultLauncher<String> locationPermission =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
+                if (granted) loadApproximateDistances();
+                else {
+                    selectedMaxDistanceKm = null;
+                    if (getView() != null) ((TextView)getView().findViewById(R.id.buttonFilter)).setText("Distance");
+                    if (isAdded()) Toast.makeText(requireContext(),
+                            "Location permission is needed for distance filtering",Toast.LENGTH_LONG).show();
+                }
+            });
 
 
     // =========================================================
@@ -147,6 +183,7 @@ public class BrowseFragment extends Fragment {
                 view.findViewById(
                         R.id.buttonFilter
                 );
+        TextView ratingButton = view.findViewById(R.id.buttonRating);
 
 
         // -----------------------------------------------------
@@ -255,12 +292,8 @@ public class BrowseFragment extends Fragment {
         // DISTANCE FILTER
         // =====================================================
 
-        distanceButton.setOnClickListener(v -> {
-
-            showDistanceDialog(
-                    distanceButton
-            );
-        });
+        distanceButton.setOnClickListener(v -> showDistanceDialog(distanceButton));
+        ratingButton.setOnClickListener(v -> showRatingDialog(ratingButton));
 
 
         // =====================================================
@@ -329,6 +362,8 @@ public class BrowseFragment extends Fragment {
                                 items
                         );
 
+                        loadOwnerRatings();
+                        if (selectedMaxDistanceKm != null) loadApproximateDistances();
                         applyFilters();
                     }
 
@@ -446,10 +481,13 @@ public class BrowseFragment extends Fragment {
             // -------------------------------------------------
 
             boolean matchesPrice =
-                    searchService.matchesMaxPrice(
-                            price,
-                            selectedMaxPrice
-                    );
+                    searchService.matchesMaxPrice(price, selectedMaxPrice);
+            Double ownerRating = ratingByOwner.get(item.getOwnerId());
+            boolean matchesRating = selectedMinRating == null
+                    || (ownerRating != null && ownerRating >= selectedMinRating);
+            Double approxKm = approxDistanceByItem.get(itemId);
+            boolean matchesDistance = selectedMaxDistanceKm == null
+                    || (approxKm != null && approxKm <= selectedMaxDistanceKm);
 
 
             // -------------------------------------------------
@@ -462,6 +500,8 @@ public class BrowseFragment extends Fragment {
                             matchesCategory
                             &&
                             matchesPrice
+                            && matchesRating
+                            && matchesDistance
             ) {
 
                 addItemCard(
@@ -889,4 +929,91 @@ public class BrowseFragment extends Fragment {
 
                 .show();
     }
+    private void showRatingDialog(TextView ratingButton) {
+        String[] options={"Any rating", "3+ stars", "4+ stars", "4.5+ stars"};
+        double[] thresholds={0,3,4,4.5};
+        new AlertDialog.Builder(requireContext()).setTitle("Minimum owner rating")
+          .setItems(options,(d,w)->{
+              selectedMinRating=w==0?null:thresholds[w];
+              ratingButton.setText(w==0?"Rating":options[w]);
+              applyFilters();
+          }).show();
+    }
+
+    private void loadOwnerRatings() {
+        ratingByOwner.clear();
+        Set<String> ids = new HashSet<>();
+        for (Item item:allItems) if(item.getOwnerId()!=null) ids.add(item.getOwnerId());
+        ReviewRepository repo = new ReviewRepository();
+        for(String id:ids) {
+            repo.getReviewsByRole(id, ReviewRole.OWNER,
+              new ReviewRepository.OnReviewsLoadedListener() {
+                @Override public void onSuccess(List<Review> list) {
+                    if(!isAdded())return;
+                    int total=0;
+                    for(Review review:list) total+=review.getRating();
+                    if(!list.isEmpty()) ratingByOwner.put(id,total/(double)list.size());
+                    applyFilters();
+                }
+                @Override public void onFailure(Exception error) {
+                    if(isAdded() && selectedMinRating!=null)
+                        Toast.makeText(requireContext(),"Could not load some ratings",Toast.LENGTH_SHORT).show();
+                }
+              });
+        }
+    }
+
+    /** Approximate suburb-distance filtering, using geocoding and last known location. */
+    private void loadApproximateDistances() {
+        if (!isAdded() || loadingDistances || selectedMaxDistanceKm == null) return;
+        if (ContextCompat.checkSelfPermission(requireContext(),Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            locationPermission.launch(Manifest.permission.ACCESS_COARSE_LOCATION);
+            return;
+        }
+        Context context=requireContext().getApplicationContext();
+        LocationManager manager=(LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
+        if(manager==null){distanceUnavailable("Location service unavailable");return;}
+        Location last=null;
+        try {
+            Location a=manager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            Location b=manager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            last=a!=null?a:b;
+        } catch (SecurityException e) {distanceUnavailable("Location permission unavailable");return;}
+        if(last==null || System.currentTimeMillis()-last.getTime()>60*60*1000) {
+            distanceUnavailable("No recent location fix. Open a map/location app first, then retry.");return;
+        }
+        final double userLat=last.getLatitude(),userLon=last.getLongitude();
+        final List<Item> items=new ArrayList<>(allItems);
+        loadingDistances=true;
+        geoExecutor.execute(()->{
+            Map<String,Double> values=new HashMap<>();
+            Geocoder geocoder=new Geocoder(context,java.util.Locale.getDefault());
+            for(Item item:items) {
+                try {
+                    if(item.getLocation()==null) continue;
+                    List<Address> places=geocoder.getFromLocationName(item.getLocation()+", NSW Australia",1);
+                    if(places!=null && !places.isEmpty()) {
+                        Address place=places.get(0);
+                        values.put(item.getItemId(),locationMath.calculateDistanceKm(
+                                userLat,userLon,place.getLatitude(),place.getLongitude()));
+                    }
+                } catch (Exception ignored) { /* Unknown locations are excluded, not guessed. */ }
+            }
+            if(!isAdded())return;
+            requireActivity().runOnUiThread(()->{
+                loadingDistances=false;
+                approxDistanceByItem.clear();approxDistanceByItem.putAll(values);
+                applyFilters();
+                if(values.isEmpty()) distanceUnavailable("No listing locations could be resolved");
+            });
+        });
+    }
+    private void distanceUnavailable(String reason) {
+        selectedMaxDistanceKm=null;
+        if(getView()!=null) ((TextView)getView().findViewById(R.id.buttonFilter)).setText("Distance");
+        if(isAdded())Toast.makeText(requireContext(),reason,Toast.LENGTH_LONG).show();
+        applyFilters();
+    }
+
 }

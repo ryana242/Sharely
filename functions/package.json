@@ -1,0 +1,17 @@
+{
+  "name": "sharely-extension-functions",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": "22"
+  },
+  "main": "index.js",
+  "scripts": {
+    "syntax": "node --check index.js",
+    "test": "node --test helpers.test.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.0.0"
+  }
+}

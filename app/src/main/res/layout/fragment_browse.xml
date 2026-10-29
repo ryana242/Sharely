@@ -153,6 +153,22 @@
                     android:textSize="14sp" />
 
                 <Button
+                    android:id="@+id/buttonRating"
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/filter_chip"
+                    android:backgroundTint="@null"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="16dp"
+                    android:text="Rating"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textSize="14sp" />
+
+                <Button
                     android:id="@+id/buttonAvailability"
                     android:layout_width="wrap_content"
                     android:layout_height="44dp"

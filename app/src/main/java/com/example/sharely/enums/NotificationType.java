@@ -11,6 +11,11 @@ public enum NotificationType {
     BOOKING_CANCELLED,
 
     //Reminding someone send message to you
-    NEW_MESSAGE
+    NEW_MESSAGE,
+    PICKUP_SCHEDULED,
+    PICKUP_CONFIRMED,
+    RETURN_REQUESTED,
+    BOOKING_COMPLETED,
+    DEMO_PAYMENT_CONFIRMED
 
 }

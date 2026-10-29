@@ -295,28 +295,6 @@ service cloud.firestore {
               resource.data.itemId, bookingId, resource.data
             )
           )
-          ||
-          // Item owner confirms pickup during the booked period.
-          (
-            resource.data.status == 'ACCEPTED'
-            && request.resource.data.status == 'ACTIVE'
-            && ownsItem(resource.data.itemId)
-            && resource.data.startTime <= request.time.toMillis()
-            && request.time.toMillis() < resource.data.endTime
-            && reservation(bookingId, resource.data)
-              in ledger(get(itemPath(resource.data.itemId)).data)
-          )
-          ||
-          // Item owner confirms return and releases the reservation.
-          (
-            resource.data.status == 'ACTIVE'
-            && request.resource.data.status == 'COMPLETED'
-            && ownsItem(resource.data.itemId)
-            && resource.data.startTime <= request.time.toMillis()
-            && ledgerRemovesBooking(
-              resource.data.itemId, bookingId, resource.data
-            )
-          )
         );
 
       allow delete: if false;
@@ -536,6 +514,63 @@ service cloud.firestore {
         && request.resource.data.isRead is bool;
 
       allow delete: if false;
+    }
+
+    // Public Q&A. Only the listing owner may answer, and answers are immutable.
+    match /sharelyTransactionFlows/{bookingId} {
+      allow read, write: if false; // Only Cloud Functions / Admin SDK
+    }
+    match /sharelyTransactionEvents/{eventId} {
+      allow read, write: if false;
+    }
+
+    match /itemQuestions/{questionId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'questionId','itemId','authorId','question','answer','createdAt'])
+        && request.resource.data.keys().hasAll([
+          'questionId','itemId','authorId','question','answer','createdAt'])
+        && request.resource.data.questionId == questionId
+        && request.resource.data.itemId is string
+        && exists(itemPath(request.resource.data.itemId))
+        && !ownsItem(request.resource.data.itemId)
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.question is string
+        && request.resource.data.question.size() >= 3
+        && request.resource.data.question.size() <= 500
+        && request.resource.data.answer == ''
+        && request.resource.data.createdAt is int;
+      allow update: if signedIn()
+        && ownsItem(resource.data.itemId)
+        && resource.data.answer == ''
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly(['answer'])
+        && request.resource.data.answer is string
+        && request.resource.data.answer.size() >= 2
+        && request.resource.data.answer.size() <= 1000;
+      allow delete: if false;
+    }
+
+    // Private reports: users submit; nobody can list reports in the client.
+    match /reports/{reportId} {
+      allow read: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'reportId','reporterId','targetType','targetId','reason','createdAt'])
+        && request.resource.data.keys().hasAll([
+          'reportId','reporterId','targetType','targetId','reason','createdAt'])
+        && request.resource.data.reportId == reportId
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.targetType in ['LISTING','ACCOUNT']
+        && request.resource.data.targetId is string
+        && request.resource.data.targetId.size() > 0
+        && request.resource.data.targetId != request.auth.uid
+        && request.resource.data.reason in [
+          'Illegal or prohibited item', 'Misleading information',
+          'Harassment','Other']
+        && request.resource.data.createdAt is int;
+      allow update, delete: if false;
     }
 
     match /reviews/{reviewId} {

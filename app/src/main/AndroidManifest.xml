@@ -52,6 +52,8 @@
             android:name=".NotificationsActivity"
             android:exported="false" />
 
+        <activity android:name=".SharelyTransactionActivity" android:exported="false" />
+
         <activity
             android:name=".BookingListActivity"
             android:exported="false" />

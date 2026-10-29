@@ -13,3 +13,18 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Firebase Cloud Functions and local diagnostics
+/node_modules/
+/functions/node_modules/
+/functions/.env*
+.env*
+firestore-debug.log
+.sharely-final-integration-backup-*/
+.sharely-extension-backups/
+.sharely-back-fix-backups/
+.sharely-ui-qa-backups/
+*.jks
+*.keystore
+**/google-services.json
+**/service-account*.json

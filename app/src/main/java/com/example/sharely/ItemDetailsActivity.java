@@ -23,6 +23,9 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.bumptech.glide.Glide;
+import com.example.sharely.data.ReviewRepository;
+import com.example.sharely.enums.ReviewRole;
+import com.example.sharely.model.Review;
 import com.example.sharely.data.BookingRepository;
 import com.example.sharely.data.ItemRepository;
 import com.example.sharely.data.UserRepository;
@@ -65,6 +68,8 @@ public class ItemDetailsActivity extends SharelyChromeActivity {
     private BookingRepository bookingRepository;
     private UserRepository userRepository;
     private Item currentItem;
+    private ItemCommunitySection communitySection;
+    private TextView ownerRatingText;
     private String itemId;
 
     private boolean itemLoaded;
@@ -115,6 +120,16 @@ public class ItemDetailsActivity extends SharelyChromeActivity {
         endButton = findViewById(R.id.buttonSelectEnd);
 
         itemId = getIntent().getStringExtra("itemId");
+        // Questions and reporting belong to this listing, not a developer menu.
+        LinearLayout detailBody = (LinearLayout) itemDescription.getParent();
+        communitySection = new ItemCommunitySection(this);
+        ownerRatingText = new TextView(this);
+        ownerRatingText.setTextColor(INK);
+        ownerRatingText.setTextSize(14);
+        ownerRatingText.setPadding(0,dp(8),0,dp(8));
+        detailBody.addView(ownerRatingText, detailBody.indexOfChild(itemInfo)+1);
+        int descriptionIndex = detailBody.indexOfChild(itemDescription);
+        detailBody.addView(communitySection.getView(), descriptionIndex + 1);
         findViewById(R.id.buttonBack).setOnClickListener(v -> finish());
 
         // Both existing buttons control the visible calendar rather than
@@ -225,6 +240,22 @@ public class ItemDetailsActivity extends SharelyChromeActivity {
                 "$%.2f / day", item.getPrice()));
         itemInfo.setText(nonEmpty(item.getLocation(), "Location not specified"));
         itemDescription.setText(nonEmpty(item.getDescription(), "No description"));
+        communitySection.showItem(item.getItemId(), item.getOwnerId());
+        ownerRatingText.setText("Owner rating: Loading...");
+        new ReviewRepository().getReviewsByRole(item.getOwnerId(), ReviewRole.OWNER,
+          new ReviewRepository.OnReviewsLoadedListener() {
+            @Override public void onSuccess(List<Review> reviews) {
+                if (isFinishing() || isDestroyed() || currentItem != item) return;
+                int sum=0;
+                for(Review review:reviews)sum+=review.getRating();
+                ownerRatingText.setText(reviews.isEmpty()?"Owner rating: No reviews yet"
+                        : String.format(Locale.getDefault(),
+                        "Owner rating: ★ %.1f (%d reviews)",sum/(double)reviews.size(),reviews.size()));
+            }
+            @Override public void onFailure(Exception error) {
+                if(!isFinishing()) ownerRatingText.setText("Owner rating unavailable");
+            }
+          });
 
         AvailabilitySlot window = ownerWindow();
         if (item.getStatus() != ItemStatus.ACTIVE) {
