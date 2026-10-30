@@ -8,6 +8,7 @@ const {onCall, HttpsError} = require('firebase-functions/v2/https');
 const {onDocumentCreated} = require('firebase-functions/v2/firestore');
 const sharelyCall = handler => onCall({region:'australia-southeast1'},handler);
 const admin = require('firebase-admin');
+const {FieldValue} = require('firebase-admin/firestore');
 const {fee, cents, freshOtp, matches, bookingDetails, rentalQuote, latePolicy} = require('./helpers.js');
 if (!admin.apps.length) admin.initializeApp();
 const db = admin.firestore();
@@ -58,7 +59,7 @@ async function mutateFlow(id, uid, fn) {
 }
 function event(tx,bookingId,eventType,uid) {
   const ev=db.collection('sharelyTransactionEvents').doc();
-  tx.create(ev,{bookingId,eventType,actorId:uid,createdAt:admin.firestore.FieldValue.serverTimestamp()});
+  tx.create(ev,{bookingId,eventType,actorId:uid,createdAt:FieldValue.serverTimestamp()});
 }
 function validateFutureMs(n,label) {
   if (!Number.isSafeInteger(n) || n <= now())
@@ -184,7 +185,7 @@ exports.sharelyVerifyPickupOtp = sharelyCall(async request => {
       tx.update(refFor(id),{'pickupOtp.failedAttempts':otp.failedAttempts+1});
       return {ok:false};
     }
-    tx.update(refFor(id),{phase:'ACTIVE',pickupOtp:admin.firestore.FieldValue.delete(),
+    tx.update(refFor(id),{phase:'ACTIVE',pickupOtp:FieldValue.delete(),
       actualPickupAt:t,updatedAt:t});
     tx.update(bookFor(id),{status:'ACTIVE'});
     event(tx,id,'BORROWING_STARTED',uid);
@@ -277,7 +278,7 @@ exports.sharelyVerifyReturnOtp = sharelyCall(async request => {
     if (ledger.filter(matchesReservation).length !== 1)
       fail('failed-precondition','Reservation ledger is inconsistent');
     tx.update(itemRef,{acceptedReservations:ledger.filter(entry=>!matchesReservation(entry))});
-    tx.update(refFor(id),{phase:'COMPLETED',returnOtp:admin.firestore.FieldValue.delete(),
+    tx.update(refFor(id),{phase:'COMPLETED',returnOtp:FieldValue.delete(),
       actualReturnConfirmedAt:t,updatedAt:t});
     tx.update(bookFor(id),{status:'COMPLETED'});
     event(tx,id,'BOOKING_COMPLETED',uid);
@@ -310,7 +311,8 @@ exports.sharelyAskPublicQuestion = sharelyCall(async request => {
   if (!ownerId) fail('failed-precondition','Map listing owner field');
   const ref=db.collection('sharelyPublicQuestions').doc();
   await ref.create({itemId,ownerId,authorId:uid,question:question.trim(),answer:null,
-                    createdAt:admin.firestore.FieldValue.serverTimestamp()});
+                    createdAt: FieldValue.serverTimestamp()
+                    });
   return {questionId:ref.id};
 });
 
@@ -323,7 +325,7 @@ exports.sharelyAnswerPublicQuestion = sharelyCall(async request => {
     const snap=await tx.get(ref);
     if (!snap.exists) fail('not-found','Question not found');
     if (snap.data().ownerId!==uid) fail('permission-denied','Only listing owner may answer');
-    tx.update(ref,{answer:answer.trim(),answeredAt:admin.firestore.FieldValue.serverTimestamp()});
+    tx.update(ref,{answer:answer.trim(),answeredAt:FieldValue.serverTimestamp()});
   });
   return {answered:true};
 });
@@ -337,7 +339,7 @@ exports.sharelyReportContent = sharelyCall(async request => {
     fail('invalid-argument','Invalid report');
   const ref=db.collection('sharelyReports').doc();
   await ref.create({reporterId:uid,targetId,targetType,reason,description:description.trim(),
-    status:'OPEN',createdAt:admin.firestore.FieldValue.serverTimestamp()});
+    status:'OPEN',createdAt:FieldValue.serverTimestamp()});
   // Reports remain private for admin moderation, with no automatic police disclosure.
   return {reportId:ref.id,submitted:true};
 });
