@@ -1,0 +1,100 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function itemExists(itemId) {
+      return firestore.exists(
+        /databases/(default)/documents/items/$(itemId)
+      );
+    }
+
+    function ownsExistingItem(itemId) {
+      return signedIn()
+        && itemExists(itemId)
+        && firestore.get(
+          /databases/(default)/documents/items/$(itemId)
+        ).data.ownerId == request.auth.uid;
+    }
+
+    function validImage(imageName) {
+      return imageName.matches('image_[0-5]\\.jpg')
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    function bookingExists(bookingId) {
+      return firestore.exists(
+        /databases/(default)/documents/bookings/$(bookingId)
+      );
+    }
+
+    function booking(bookingId) {
+      return firestore.get(
+        /databases/(default)/documents/bookings/$(bookingId)
+      ).data;
+    }
+
+    function participant(bookingId) {
+      return signedIn()
+        && bookingExists(bookingId)
+        && (
+          booking(bookingId).borrowerId == request.auth.uid
+          ||
+          (
+            itemExists(booking(bookingId).itemId)
+            && ownsExistingItem(booking(bookingId).itemId)
+          )
+        );
+    }
+
+    // ==========================================
+    // 1. Item images
+    // Android path: items/{itemId}/image_0.jpg
+    // ==========================================
+
+    match /items/{itemId}/{imageName} {
+
+      // Signed-in users can view listing images.
+      allow read: if signedIn();
+
+      // Allow initial upload before the item is created.
+      // IMPORTANT:
+      // Ownership cannot be verified for a nonexistent item.
+      allow create: if signedIn()
+        && !itemExists(itemId)
+        && validImage(imageName);
+
+      // Once the item exists, only its owner may replace images.
+      allow update: if ownsExistingItem(itemId)
+        && validImage(imageName);
+
+      // Once the item exists, only its owner may delete images.
+      allow delete: if ownsExistingItem(itemId);
+    }
+
+    // ==========================================
+    // 2. Transaction evidence photos
+    // ==========================================
+
+    match /transactionEvidence/{bookingId}/{userId}/{photoId} {
+
+      // Only booking participants can view photos.
+      allow read: if participant(bookingId);
+
+      // Only participants can upload their own evidence.
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && participant(bookingId)
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+
+      // Evidence cannot be replaced or deleted.
+      allow update, delete: if false;
+    }
+  }
+}
