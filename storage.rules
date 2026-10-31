@@ -66,7 +66,7 @@ service firebase.storage {
       // IMPORTANT:
       // Ownership cannot be verified for a nonexistent item.
       allow create: if signedIn()
-        && !itemExists(itemId)
+        && ownsExistingItem(itemId)
         && validImage(imageName);
 
       // Once the item exists, only its owner may replace images.
@@ -90,9 +90,9 @@ service firebase.storage {
       allow create: if signedIn()
         && request.auth.uid == userId
         && participant(bookingId)
+        && photoId.matches('.*\\.(jpg|jpeg|png)')
         && request.resource.size < 10 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
-
+        && request.resource.contentType.matches('image/(jpeg|png)');
       // Evidence cannot be replaced or deleted.
       allow update, delete: if false;
     }

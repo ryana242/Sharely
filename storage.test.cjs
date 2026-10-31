@@ -68,8 +68,7 @@ async function main() {
   // Initialize Firebase Emulator environment
   const env = await initializeTestEnvironment({
 
-    projectId: "sharely-storage-test",
-
+    projectId: "sharely-7205c",
     firestore: {
       rules: fs.readFileSync("firestore.rules", "utf8")
     },
@@ -344,24 +343,170 @@ console.log("Item data:", itemSnapshot.data());
     // by placing his own UID in the Storage path.
 
     await runTest(
-      "Stranger cannot upload image using their own UID for someone else's item",
+      "Stranger cannot upload another image",
       async () => {
-
         await assertFails(
           uploadBytes(
-            ref(
-              strangerStorage,
-              "items/bob/item123/image_0.jpg"
-            ),
+            ref(strangerStorage, "items/item123/image_2.jpg"),
             imageData,
-            {
-              contentType: "image/jpeg"
-            }
+            { contentType: "image/jpeg" }
           )
         );
-
       }
     );
+
+// ============================================
+// STEP 4: Transaction Evidence Security Tests
+// ============================================
+
+// Create a test booking
+await env.withSecurityRulesDisabled(async (context) => {
+  const db = context.firestore();
+
+  await setDoc(doc(db, "bookings", "booking123"), {
+    bookingId: "booking123",
+    borrowerId: "charlie",
+    itemId: "item123",
+    startTime: Date.now() + 86400000,
+    endTime: Date.now() + 172800000,
+    status: "ACCEPTED"
+  });
+});
+
+// Alice = Owner
+// Charlie = Borrower
+// Bob = Stranger
+
+const borrowerStorage =
+  env.authenticatedContext("charlie").storage();
+
+const ownerEvidencePath =
+  "transactionEvidence/booking123/alice/before.jpg";
+
+const borrowerEvidencePath =
+  "transactionEvidence/booking123/charlie/after.jpg";
+
+const strangerEvidencePath =
+  "transactionEvidence/booking123/bob/before.jpg";
+
+const ownerEvidenceRef =
+  ref(ownerStorage, ownerEvidencePath);
+
+const borrowerEvidenceRef =
+  ref(borrowerStorage, borrowerEvidencePath);
+
+// ============================================
+// TEST 14: Owner uploads evidence
+// ============================================
+
+await runTest("Owner can upload transaction evidence", async () => {
+  await assertSucceeds(
+    uploadBytes(ownerEvidenceRef, imageData, {
+      contentType: "image/jpeg"
+    })
+  );
+});
+
+// ============================================
+// TEST 15: Borrower uploads evidence
+// ============================================
+
+await runTest("Borrower can upload transaction evidence", async () => {
+  await assertSucceeds(
+    uploadBytes(borrowerEvidenceRef, imageData, {
+      contentType: "image/jpeg"
+    })
+  );
+});
+
+// ============================================
+// TEST 16: Stranger cannot upload evidence
+// ============================================
+
+await runTest("Stranger cannot upload transaction evidence", async () => {
+  await assertFails(
+    uploadBytes(
+      ref(strangerStorage, strangerEvidencePath),
+      imageData,
+      { contentType: "image/jpeg" }
+    )
+  );
+});
+
+// ============================================
+// TEST 17: Owner can read evidence
+// ============================================
+
+await runTest("Owner can read transaction evidence", async () => {
+  await assertSucceeds(
+    getBytes(
+      ref(ownerStorage, borrowerEvidencePath)
+    )
+  );
+});
+
+// ============================================
+// TEST 18: Borrower can read owner's evidence
+// ============================================
+
+await runTest("Borrower can read owner's evidence", async () => {
+  await assertSucceeds(
+    getBytes(
+      ref(borrowerStorage, ownerEvidencePath)
+    )
+  );
+});
+
+// ============================================
+// TEST 19: Stranger cannot read evidence
+// ============================================
+
+await runTest("Stranger cannot read transaction evidence", async () => {
+  await assertFails(
+    getBytes(
+      ref(strangerStorage, ownerEvidencePath)
+    )
+  );
+});
+
+// ============================================
+// TEST 20: Guest cannot read evidence
+// ============================================
+
+await runTest("Guest cannot read transaction evidence", async () => {
+  await assertFails(
+    getBytes(
+      ref(guestStorage, ownerEvidencePath)
+    )
+  );
+});
+
+// ============================================
+// TEST 21: Borrower cannot delete evidence
+// ============================================
+
+await runTest("Borrower cannot delete transaction evidence", async () => {
+  await assertFails(
+    deleteObject(borrowerEvidenceRef)
+  );
+});
+
+// ============================================
+// TEST 22: Borrower cannot upload under owner's UID
+// ============================================
+
+await runTest("Borrower cannot impersonate owner in evidence path", async () => {
+  await assertFails(
+    uploadBytes(
+      ref(
+        borrowerStorage,
+        "transactionEvidence/booking123/alice/fake.jpg"
+      ),
+      imageData,
+      { contentType: "image/jpeg" }
+    )
+  );
+});
 
   } finally {
 
