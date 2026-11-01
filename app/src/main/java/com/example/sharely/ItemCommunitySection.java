@@ -23,6 +23,8 @@ final class ItemCommunitySection {
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final LinearLayout root;
     private final LinearLayout questions;
+    private final Button askButton;
+    private final Button reportButton;
     private String itemId;
     private String ownerId;
     private final int green = Color.rgb(23,107,82);
@@ -38,18 +40,30 @@ final class ItemCommunitySection {
         questions = new LinearLayout(context);
         questions.setOrientation(LinearLayout.VERTICAL);
         root.addView(questions);
-        Button ask = button("Ask a question");
-        root.addView(ask);
-        ask.setOnClickListener(v -> askQuestion());
-        Button report = button("Report this listing or owner");
-        root.addView(report);
-        report.setOnClickListener(v -> chooseReport());
+        askButton = button("Ask a question");
+        askButton.setVisibility(View.GONE);
+        root.addView(askButton);
+        askButton.setOnClickListener(v -> askQuestion());
+        reportButton = button("Report this listing or owner");
+        reportButton.setVisibility(View.GONE);
+        root.addView(reportButton);
+        reportButton.setOnClickListener(v -> chooseReport());
     }
     View getView() { return root; }
     void showItem(String itemId, String ownerId) {
-        if (itemId == null || ownerId == null) return;
+        if (itemId == null || ownerId == null) {
+            // Never expose owner-sensitive actions before ownership is known.
+            askButton.setVisibility(View.GONE);
+            reportButton.setVisibility(View.GONE);
+            return;
+        }
         this.itemId = itemId;
         this.ownerId = ownerId;
+        String currentUid = uid();
+        boolean isOwner = currentUid != null && currentUid.equals(ownerId);
+        // Owners answer questions; they cannot ask or report their own listing.
+        askButton.setVisibility(isOwner ? View.GONE : View.VISIBLE);
+        reportButton.setVisibility(isOwner ? View.GONE : View.VISIBLE);
         loadQuestions();
     }
     private String uid() {
@@ -122,7 +136,16 @@ final class ItemCommunitySection {
           }).show();
     }
     private void chooseReport() {
-        if(uid()==null || itemId==null) {notice("Please sign in first");return;}
+        String currentUid = uid();
+        if (currentUid == null || itemId == null || ownerId == null) {
+            notice("Please sign in first");
+            return;
+        }
+        // UI visibility is not security: also reject accidental/programmatic calls.
+        if (currentUid.equals(ownerId)) {
+            notice("You cannot report your own listing or account");
+            return;
+        }
         String[] targets={"Report listing","Report owner account"};
         new AlertDialog.Builder(context).setTitle("What would you like to report?")
           .setItems(targets,(d,w)->reasonReport(w==0?"LISTING":"ACCOUNT",w==0?itemId:ownerId)).show();
