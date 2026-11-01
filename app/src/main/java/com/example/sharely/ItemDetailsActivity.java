@@ -1,6 +1,10 @@
 package com.example.sharely;
 
 import android.content.Intent;
+import android.net.Uri;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
+import androidx.activity.result.contract.ActivityResultContracts;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -70,6 +74,7 @@ public class ItemDetailsActivity extends SharelyChromeActivity {
     private Item currentItem;
     private ItemCommunitySection communitySection;
     private TextView ownerRatingText;
+    private TextView ownerListingBadge;
     private String itemId;
 
     private boolean itemLoaded;
@@ -86,6 +91,77 @@ public class ItemDetailsActivity extends SharelyChromeActivity {
     private GridLayout daysGrid;
     private LinearLayout photos;
     private Button requestButton, messageButton, startButton, endButton;
+    private Button ownerAddPhotosButton;
+    private boolean photosUploading;
+    // Owners can select pictures already on their phone (or the emulator).
+    private final ActivityResultLauncher<PickVisualMediaRequest> ownerPhotoPicker =
+            registerForActivityResult(
+                    new ActivityResultContracts.PickMultipleVisualMedia(6),
+                    this::uploadSelectedOwnerPhotos);
+
+    // Explicit device Files provider, including downloaded image files.
+    private final ActivityResultLauncher<String[]> ownerFilesPicker =
+            registerForActivityResult(
+                    new ActivityResultContracts.OpenMultipleDocuments(),
+                    uris -> {
+                        if (uris != null) {
+                            for (Uri uri : uris) {
+                                try {
+                                    getContentResolver().takePersistableUriPermission(
+                                            uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                } catch (SecurityException ignored) {
+                                    // Temporary permission still permits the immediate upload.
+                                }
+                            }
+                        }
+                        uploadSelectedOwnerPhotos(uris);
+                    });
+
+    private void chooseOwnerPhotoSource() {
+        if (!isOwner() || currentItem == null || photosUploading) return;
+        int remaining = OwnerItemPhotoUploader.MAX_PHOTOS
+                - (currentItem.getImageUrls() == null ? 0 : currentItem.getImageUrls().size());
+        if (remaining <= 0) {
+            toast("This listing already has 6 photos.");
+            return;
+        }
+        String[] sources = {"Choose from Photos", "Browse device files"};
+        new AlertDialog.Builder(this)
+                .setTitle("Add photos to your listing")
+                .setItems(sources, (dialog, which) -> {
+                    if (which == 0) {
+                        ownerPhotoPicker.launch(new PickVisualMediaRequest.Builder()
+                                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                                .build());
+                    } else {
+                        ownerFilesPicker.launch(new String[]{"image/*"});
+                    }
+                })
+                .show();
+    }
+
+    private void uploadSelectedOwnerPhotos(List<Uri> uris) {
+        if (uris == null || uris.isEmpty() || !isOwner() || currentItem == null
+                || photosUploading) return;
+        // The uploader independently verifies ownership, image size, and remaining slots.
+        photosUploading = true;
+        ownerAddPhotosButton.setEnabled(false);
+        ownerAddPhotosButton.setText("Uploading photos...");
+        new OwnerItemPhotoUploader(this).upload(
+                currentItem.getItemId(), uris,
+                new OwnerItemPhotoUploader.Callback() {
+                    @Override public void onSuccess(int uploaded) {
+                        photosUploading = false;
+                        toast(uploaded + " photo(s) added to your listing.");
+                        refreshAvailability();
+                    }
+                    @Override public void onFailure(String error) {
+                        photosUploading = false;
+                        toast(error);
+                        refreshAvailability();
+                    }
+                });
+    }
 
     @Override
     protected void onCreate(Bundle state) {
@@ -128,6 +204,40 @@ public class ItemDetailsActivity extends SharelyChromeActivity {
         ownerRatingText.setTextSize(14);
         ownerRatingText.setPadding(0,dp(8),0,dp(8));
         detailBody.addView(ownerRatingText, detailBody.indexOfChild(itemInfo)+1);
+        // The same owner marker used on Home and Browse; Item Details
+        // remains a single screen for both borrowers and owners.
+        ownerListingBadge = new TextView(this);
+        ownerListingBadge.setText("Your listing");
+        ownerListingBadge.setTextSize(12);
+        ownerListingBadge.setTextColor(GREEN);
+        ownerListingBadge.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        ownerListingBadge.setPadding(dp(12), dp(7), dp(12), dp(7));
+        ownerListingBadge.setBackground(surface(LIGHT_GREEN, Color.rgb(197, 228, 212), 14));
+        ownerListingBadge.setVisibility(View.GONE);
+        LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        badgeParams.topMargin = dp(8);
+        detailBody.addView(ownerListingBadge,
+                detailBody.indexOfChild(itemInfo) + 1, badgeParams);
+        // Owner-only action directly beneath the existing listing photo gallery.
+        // It is never available to borrowers or unauthenticated users.
+        ownerAddPhotosButton = new Button(this);
+        ownerAddPhotosButton.setText("Add photos from your device");
+        ownerAddPhotosButton.setTextColor(GREEN);
+        ownerAddPhotosButton.setAllCaps(false);
+        ownerAddPhotosButton.setBackground(surface(Color.WHITE, GREEN, 16));
+        ownerAddPhotosButton.setVisibility(View.GONE);
+        LinearLayout.LayoutParams photoActionParams =
+                new LinearLayout.LayoutParams(-1, dp(48));
+        photoActionParams.topMargin = dp(10);
+        View photoGallery = findViewById(R.id.photoScroll);
+        detailBody.addView(ownerAddPhotosButton,
+                detailBody.indexOfChild(photoGallery) + 1, photoActionParams);
+        ownerAddPhotosButton.setOnClickListener(v -> {
+            if (!isOwner() || currentItem == null || photosUploading) return;
+            chooseOwnerPhotoSource();
+        });
         int descriptionIndex = detailBody.indexOfChild(itemDescription);
         detailBody.addView(communitySection.getView(), descriptionIndex + 1);
         findViewById(R.id.buttonBack).setOnClickListener(v -> finish());
@@ -185,6 +295,9 @@ public class ItemDetailsActivity extends SharelyChromeActivity {
                 currentItem = item;
                 itemLoaded = true;
                 renderItem(item);
+                // Owner controls must not wait for the separate booking query.
+                // Otherwise slow/unavailable reservation data can hide the badge.
+                updateUi();
 
                 // The repository exposes accepted/active reservations via the
                 // item's ledger to borrowers, without exposing other users' UIDs.
@@ -226,6 +339,7 @@ public class ItemDetailsActivity extends SharelyChromeActivity {
 
     private void showLoadError(String message) {
         currentItem = null;
+        if (ownerAddPhotosButton != null) ownerAddPhotosButton.setVisibility(View.GONE);
         itemLoaded = false;
         availabilityReady = false;
         itemName.setText("Item unavailable");
@@ -311,8 +425,22 @@ public class ItemDetailsActivity extends SharelyChromeActivity {
 
     private void updateUi() {
         boolean ready = canChoose();
+        if (ownerListingBadge != null) {
+            ownerListingBadge.setVisibility(itemLoaded && isOwner()
+                    ? View.VISIBLE : View.GONE);
+        }
         startButton.setEnabled(ready);
         endButton.setEnabled(ready && startSelected);
+        if (ownerAddPhotosButton != null) {
+            boolean showOwnerPhotoAction = isOwner() && currentItem != null
+                    && currentItem.getStatus() != ItemStatus.PAST;
+            ownerAddPhotosButton.setVisibility(showOwnerPhotoAction ? View.VISIBLE : View.GONE);
+            ownerAddPhotosButton.setEnabled(showOwnerPhotoAction && !photosUploading
+                    && currentItem.getImageUrls() != null
+                    && currentItem.getImageUrls().size() < OwnerItemPhotoUploader.MAX_PHOTOS);
+            ownerAddPhotosButton.setText(photosUploading ? "Uploading photos..."
+                    : "Add photos from your device");
+        }
         messageButton.setVisibility(isOwner() ? View.GONE : View.VISIBLE);
         messageButton.setEnabled(itemLoaded && currentItem != null
                 && currentItem.getStatus() == ItemStatus.ACTIVE

@@ -57,7 +57,7 @@
             android:layout_marginTop="20dp"
             android:text="Create your listing"
             android:textColor="@color/sharely_text_primary"
-            android:textSize="27sp"
+            android:textSize="24sp"
             android:textStyle="bold" />
 
         <TextView
@@ -86,7 +86,7 @@
             android:layout_marginTop="4dp"
             android:text="Help people understand the condition of your item."
             android:textColor="@color/sharely_text_secondary"
-            android:textSize="13sp" />
+            android:textSize="14sp" />
 
         <!-- Selected photo previews -->
 

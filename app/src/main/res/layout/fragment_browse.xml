@@ -60,7 +60,7 @@
             android:layout_marginTop="18dp"
             android:text="Find something nearby"
             android:textColor="@color/sharely_text_primary"
-            android:textSize="25sp"
+            android:textSize="23sp"
             android:textStyle="bold" />
 
         <TextView
@@ -108,7 +108,7 @@
                 <Button
                     android:id="@+id/buttonCategory"
                     android:layout_width="wrap_content"
-                    android:layout_height="44dp"
+                    android:layout_height="48dp"
                     android:background="@drawable/filter_chip"
                     android:backgroundTint="@null"
                     android:minWidth="0dp"
@@ -123,7 +123,7 @@
                 <Button
                     android:id="@+id/buttonFilter"
                     android:layout_width="wrap_content"
-                    android:layout_height="44dp"
+                    android:layout_height="48dp"
                     android:layout_marginStart="10dp"
                     android:background="@drawable/filter_chip"
                     android:backgroundTint="@null"
@@ -139,7 +139,7 @@
                 <Button
                     android:id="@+id/buttonPrice"
                     android:layout_width="wrap_content"
-                    android:layout_height="44dp"
+                    android:layout_height="48dp"
                     android:layout_marginStart="10dp"
                     android:background="@drawable/filter_chip"
                     android:backgroundTint="@null"
@@ -155,7 +155,7 @@
                 <Button
                     android:id="@+id/buttonRating"
                     android:layout_width="wrap_content"
-                    android:layout_height="44dp"
+                    android:layout_height="48dp"
                     android:layout_marginStart="10dp"
                     android:background="@drawable/filter_chip"
                     android:backgroundTint="@null"
@@ -171,7 +171,7 @@
                 <Button
                     android:id="@+id/buttonAvailability"
                     android:layout_width="wrap_content"
-                    android:layout_height="44dp"
+                    android:layout_height="48dp"
                     android:layout_marginStart="10dp"
                     android:background="@drawable/filter_chip"
                     android:backgroundTint="@null"

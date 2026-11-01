@@ -20,7 +20,7 @@
             android:layout_height="wrap_content"
             android:text="My Activity"
             android:textColor="@color/sharely_text_primary"
-            android:textSize="30sp"
+            android:textSize="26sp"
             android:textStyle="bold" />
 
         <TextView

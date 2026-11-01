@@ -1,6 +1,8 @@
 package com.example.sharely;
 
 import android.app.DatePickerDialog;
+import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.app.TimePickerDialog;
 import android.net.Uri;
 import android.os.Bundle;
@@ -16,9 +18,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -94,7 +98,8 @@ public class AddItemActivity extends SharelyChromeActivity {
         Button setAvailabilityButton = findViewById(R.id.buttonSetAvailability);
 
         backButton.setOnClickListener(v -> finish());
-        addPhotoButton.setOnClickListener(v -> imagePicker.launch("image/*"));
+        addPhotoButton.setText("Choose photos from your device");
+        addPhotoButton.setOnClickListener(v -> chooseDevicePhotos());
         setAvailabilityButton.setOnClickListener(v -> selectAvailability());
         publishButton.setOnClickListener(v -> publishItem());
     }
@@ -170,30 +175,74 @@ public class AddItemActivity extends SharelyChromeActivity {
         });
     }
 
-    private final ActivityResultLauncher<String> imagePicker =
+    // Native Android Photo Picker (Google Photos and locally stored images).
+    // Falls back to Android's document provider where the photo picker is absent.
+    private final ActivityResultLauncher<PickVisualMediaRequest> imagePicker =
             registerForActivityResult(
-                    new ActivityResultContracts.GetMultipleContents(),
+                    new ActivityResultContracts.PickMultipleVisualMedia(6),
+                    this::onDevicePhotosSelected
+            );
+
+    // Explicit Files option for images saved in Downloads or the device's Files app.
+    private final ActivityResultLauncher<String[]> deviceFilesPicker =
+            registerForActivityResult(
+                    new ActivityResultContracts.OpenMultipleDocuments(),
                     uris -> {
-                        if (uris == null) {
-                            return;
-                        }
-
-                        for (Uri uri : uris) {
-                            if (selectedImages.size() >= 6) {
-                                break;
-                            }
-                            if (!selectedImages.contains(uri)) {
-                                selectedImages.add(uri);
+                        if (uris != null) {
+                            for (Uri uri : uris) {
+                                try {
+                                    getContentResolver().takePersistableUriPermission(
+                                            uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                } catch (SecurityException ignored) {
+                                    // Some providers only allow temporary read access.
+                                }
                             }
                         }
-
-                        updatePhotoPreviews();
-                        if (selectedImages.size() >= 6) {
-                            Toast.makeText(this, "Maximum 6 photos",
-                                    Toast.LENGTH_SHORT).show();
-                        }
+                        onDevicePhotosSelected(uris);
                     }
             );
+
+    private void chooseDevicePhotos() {
+        if (publishing) return;
+        if (selectedImages.size() >= OwnerItemPhotoUploader.MAX_PHOTOS) {
+            Toast.makeText(this, "Maximum of 6 photos per listing",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+        String[] sources = {"Choose from Photos", "Browse device files"};
+        new AlertDialog.Builder(this)
+                .setTitle("Add item photos")
+                .setItems(sources, (dialog, which) -> {
+                    if (which == 0) {
+                        imagePicker.launch(new PickVisualMediaRequest.Builder()
+                                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                                .build());
+                    } else {
+                        deviceFilesPicker.launch(new String[]{"image/*"});
+                    }
+                })
+                .show();
+    }
+
+    private void onDevicePhotosSelected(java.util.List<Uri> uris) {
+        if (uris == null || uris.isEmpty()) return;
+        int before = selectedImages.size();
+        int ignored = 0;
+        for (Uri uri : uris) {
+            if (selectedImages.size() >= OwnerItemPhotoUploader.MAX_PHOTOS) {
+                ignored++;
+                continue;
+            }
+            if (uri != null && !selectedImages.contains(uri)) {
+                selectedImages.add(uri);
+            }
+        }
+        updatePhotoPreviews();
+        int added = selectedImages.size() - before;
+        Toast.makeText(this,
+                added + " photo(s) selected" + (ignored > 0 ? "; extra images ignored (6 max)" : ""),
+                Toast.LENGTH_LONG).show();
+    }
 
     private void publishItem() {
         if (publishing) {
@@ -287,89 +336,45 @@ public class AddItemActivity extends SharelyChromeActivity {
     ) {
         String itemId = itemRepository.generateItemId();
         ArrayList<Uri> imagesToUpload = new ArrayList<>(selectedImages);
-        ArrayList<String> imageUrls = new ArrayList<>();
-
-        if (imagesToUpload.isEmpty()) {
-            saveItem(new Item(
-                    itemId, ownerId, name, descriptionText,
-                    categoryText, priceValue, locationText, imageUrls
-            ));
-            return;
-        }
-
-        for (int i = 0; i < imagesToUpload.size(); i++) {
-            imageUrls.add(null);
-        }
-
-        final int[] completedCount = {0};
-        final boolean[] uploadFailed = {false};
-
-        for (int i = 0; i < imagesToUpload.size(); i++) {
-            final int index = i;
-            Uri imageUri = imagesToUpload.get(i);
-            StorageReference imageReference = firebaseStorage
-                    .getReference()
-                    .child("items")
-                    .child(itemId)
-                    .child("image_" + index + ".jpg");
-
-            imageReference.putFile(imageUri)
-                    .continueWithTask(task -> {
-                        if (!task.isSuccessful()) {
-                            Exception error = task.getException();
-                            throw error != null ? error :
-                                    new IllegalStateException("Image upload failed");
-                        }
-                        return imageReference.getDownloadUrl();
-                    })
-                    .addOnSuccessListener(downloadUri -> {
-                        if (uploadFailed[0]) {
-                            return;
-                        }
-                        imageUrls.set(index, downloadUri.toString());
-                        completedCount[0]++;
-
-                        if (completedCount[0] == imagesToUpload.size()) {
-                            saveItem(new Item(
-                                    itemId, ownerId, name, descriptionText,
-                                    categoryText, priceValue, locationText, imageUrls
-                            ));
-                        }
-                    })
-                    .addOnFailureListener(e -> {
-                        if (!uploadFailed[0]) {
-                            uploadFailed[0] = true;
-                            setPublishing(false);
-                            Toast.makeText(this,
-                                    "Failed to upload image: " + e.getMessage(),
-                                    Toast.LENGTH_LONG).show();
-                        }
-                    });
-        }
-    }
-
-    private void saveItem(Item item) {
-        // The repository reads this slot and writes availabilityStart/
-        // availabilityEnd to Firestore in the same item document.
+        Item item = new Item(itemId, ownerId, name, descriptionText,
+                categoryText, priceValue, locationText, new ArrayList<>());
         item.setAvailabilitySlot(selectedAvailability);
 
+        // Create the owner-owned Firestore document BEFORE using Firebase Storage.
+        // Leo's Storage rules can then validate ownership via items/{itemId}.
         itemRepository.addItem(item, new ItemRepository.OnItemAddedListener() {
-            @Override
-            public void onSuccess() {
-                // Success must only be reported after Firestore confirms the write.
-                Toast.makeText(AddItemActivity.this,
-                        "Item published successfully", Toast.LENGTH_SHORT).show();
-                finish();
+            @Override public void onSuccess() {
+                if (imagesToUpload.isEmpty()) {
+                    finishWithSuccess("Item published successfully");
+                    return;
+                }
+                publishButton.setText("Uploading item photos...");
+                new OwnerItemPhotoUploader(AddItemActivity.this).upload(
+                        itemId, imagesToUpload,
+                        new OwnerItemPhotoUploader.Callback() {
+                            @Override public void onSuccess(int count) {
+                                finishWithSuccess("Listing published with " + count
+                                        + " photo(s)");
+                            }
+                            @Override public void onFailure(String message) {
+                                // The listing exists; avoid accidentally publishing a duplicate.
+                                finishWithSuccess("Listing published. Photos need attention: "
+                                        + message + ". Add them from Item Details.");
+                            }
+                        });
             }
-
-            @Override
-            public void onFailure(Exception e) {
+            @Override public void onFailure(Exception e) {
                 setPublishing(false);
                 Toast.makeText(AddItemActivity.this,
                         "Failed to publish item: " + e.getMessage(),
                         Toast.LENGTH_LONG).show();
             }
         });
+    }
+
+    private void finishWithSuccess(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+        finish();
     }
 
     private void updatePhotoPreviews() {

@@ -80,7 +80,7 @@
                 android:layout_weight="1"
                 android:text="Item name"
                 android:textColor="@color/sharely_text_primary"
-                android:textSize="26sp"
+                android:textSize="24sp"
                 android:textStyle="bold" />
 
             <TextView
