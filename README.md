@@ -135,7 +135,3 @@ Features were integrated and tested collaboratively. The Git `.mailmap` file, if
 ## Acknowledgements and academic integrity
 
 This project was developed as university coursework. The team used generative-AI tools for learning, brainstorming, candidate code, debugging assistance and writing support during development; suggested outputs were reviewed and tested by the team. See the submitted group reflection and the unit's required AI-use disclosure for details.
-
-## Licence
-
-No open-source licence is specified for this coursework repository. Please contact the project team before reusing or redistributing the code.
