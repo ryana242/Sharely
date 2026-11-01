@@ -21,6 +21,8 @@ import com.bumptech.glide.Glide;
 import com.example.sharely.data.ItemRepository;
 import com.example.sharely.enums.ItemStatus;
 import com.example.sharely.model.Item;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.util.List;
 import java.util.Locale;
@@ -139,6 +141,30 @@ public class HomeFragment extends Fragment {
                     .centerCrop()
                     .placeholder(R.drawable.item_image_placeholder)
                     .into(image);
+        }
+
+        // Owner-only badge shown on Home item preview cards.
+        FirebaseUser signedIn = FirebaseAuth.getInstance().getCurrentUser();
+        boolean ownListing = signedIn != null && item.getOwnerId() != null
+                && signedIn.getUid().equals(item.getOwnerId());
+        if (ownListing) {
+            TextView ownerChip = new TextView(requireContext());
+            ownerChip.setText("Your listing");
+            ownerChip.setTextSize(11);
+            ownerChip.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+            ownerChip.setTextColor(0xFF176B52);
+            ownerChip.setPadding(dp(10), dp(5), dp(10), dp(5));
+            GradientDrawable chipBackground = new GradientDrawable();
+            chipBackground.setColor(0xFFEAF5EE);
+            chipBackground.setCornerRadius(dp(12));
+            chipBackground.setStroke(dp(1), 0xFFC5E4D4);
+            ownerChip.setBackground(chipBackground);
+            LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            chipParams.topMargin = dp(10);
+            card.addView(ownerChip, chipParams);
+            card.setContentDescription("Your listing: " + item.getItemName());
         }
 
         TextView name = addText(card, item.getItemName(), 15, 0xFF123D31, true, 10);

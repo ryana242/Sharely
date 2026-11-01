@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -46,6 +47,8 @@ import com.example.sharely.model.Item;
 import com.bumptech.glide.Glide;
 import com.example.sharely.data.ItemRepository;
 import com.example.sharely.service.ItemSearchService;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -511,7 +514,8 @@ public class BrowseFragment extends Fragment {
                         category,
                         price,
                         location,
-                        imageUrls
+                        imageUrls,
+                        item.getOwnerId()
                 );
 
                 visibleCount++;
@@ -545,7 +549,8 @@ public class BrowseFragment extends Fragment {
             String category,
             double price,
             String location,
-            ArrayList<String> imageUrls
+            ArrayList<String> imageUrls,
+            String ownerId
     ) {
 
         View card =
@@ -634,6 +639,31 @@ public class BrowseFragment extends Fragment {
             );
         }
 
+
+        // Mark this as the signed-in user's own listing.
+        FirebaseUser signedIn = FirebaseAuth.getInstance().getCurrentUser();
+        boolean ownListing = signedIn != null && ownerId != null
+                && signedIn.getUid().equals(ownerId);
+        if (ownListing && card instanceof LinearLayout) {
+            TextView ownerChip = new TextView(requireContext());
+            ownerChip.setText("Your listing");
+            ownerChip.setTextSize(12);
+            ownerChip.setTextColor(0xFF176B52);
+            ownerChip.setTypeface(android.graphics.Typeface.DEFAULT,
+                    android.graphics.Typeface.BOLD);
+            ownerChip.setPadding(dp(11), dp(6), dp(11), dp(6));
+            GradientDrawable chipBackground = new GradientDrawable();
+            chipBackground.setColor(0xFFEAF5EE);
+            chipBackground.setCornerRadius(dp(14));
+            chipBackground.setStroke(dp(1), 0xFFC5E4D4);
+            ownerChip.setBackground(chipBackground);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            params.topMargin = dp(10);
+            ((LinearLayout) card).addView(ownerChip, 1, params);
+            card.setContentDescription("Your listing: " + itemName);
+        }
 
         // =====================================================
         // VIEW DETAILS
@@ -1016,4 +1046,8 @@ public class BrowseFragment extends Fragment {
         applyFilters();
     }
 
+    private int dp(int value) {
+        return Math.round(value * requireContext()
+                .getResources().getDisplayMetrics().density);
+    }
 }
