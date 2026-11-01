@@ -8,6 +8,7 @@ const {onCall, HttpsError} = require('firebase-functions/v2/https');
 const {onDocumentCreated} = require('firebase-functions/v2/firestore');
 const sharelyCall = handler => onCall({region:'australia-southeast1'},handler);
 const admin = require('firebase-admin');
+const {FieldValue} = require('firebase-admin/firestore');
 const {fee, cents, freshOtp, matches, bookingDetails, rentalQuote, latePolicy} = require('./helpers.js');
 if (!admin.apps.length) admin.initializeApp();
 const db = admin.firestore();
@@ -58,7 +59,7 @@ async function mutateFlow(id, uid, fn) {
 }
 function event(tx,bookingId,eventType,uid) {
   const ev=db.collection('sharelyTransactionEvents').doc();
-  tx.create(ev,{bookingId,eventType,actorId:uid,createdAt:admin.firestore.FieldValue.serverTimestamp()});
+  tx.create(ev,{bookingId,eventType,actorId:uid,createdAt:FieldValue.serverTimestamp()});
 }
 function validateFutureMs(n,label) {
   if (!Number.isSafeInteger(n) || n <= now())
@@ -184,7 +185,7 @@ exports.sharelyVerifyPickupOtp = sharelyCall(async request => {
       tx.update(refFor(id),{'pickupOtp.failedAttempts':otp.failedAttempts+1});
       return {ok:false};
     }
-    tx.update(refFor(id),{phase:'ACTIVE',pickupOtp:admin.firestore.FieldValue.delete(),
+    tx.update(refFor(id),{phase:'ACTIVE',pickupOtp:FieldValue.delete(),
       actualPickupAt:t,updatedAt:t});
     tx.update(bookFor(id),{status:'ACTIVE'});
     event(tx,id,'BORROWING_STARTED',uid);
@@ -277,7 +278,7 @@ exports.sharelyVerifyReturnOtp = sharelyCall(async request => {
     if (ledger.filter(matchesReservation).length !== 1)
       fail('failed-precondition','Reservation ledger is inconsistent');
     tx.update(itemRef,{acceptedReservations:ledger.filter(entry=>!matchesReservation(entry))});
-    tx.update(refFor(id),{phase:'COMPLETED',returnOtp:admin.firestore.FieldValue.delete(),
+    tx.update(refFor(id),{phase:'COMPLETED',returnOtp:FieldValue.delete(),
       actualReturnConfirmedAt:t,updatedAt:t});
     tx.update(bookFor(id),{status:'COMPLETED'});
     event(tx,id,'BOOKING_COMPLETED',uid);
@@ -300,32 +301,97 @@ exports.sharelyAttachAfterPhoto = sharelyCall(async request => {
 });
 
 exports.sharelyAskPublicQuestion = sharelyCall(async request => {
-  const uid=reqAuth(request),itemId=idOf(request,'itemId');
-  const question=request.data.question;
-  if (typeof question !== 'string' || question.trim().length<5 || question.length>500)
-    fail('invalid-argument','Question must be 5-500 characters');
-  const item=await db.collection(ITEM_COLLECTION).doc(itemId).get();
-  if (!item.exists) fail('not-found','Item not found; check item collection adapter');
-  const ownerId=item.data().ownerId || item.data().userId;
-  if (!ownerId) fail('failed-precondition','Map listing owner field');
-  const ref=db.collection('sharelyPublicQuestions').doc();
-  await ref.create({itemId,ownerId,authorId:uid,question:question.trim(),answer:null,
-                    createdAt:admin.firestore.FieldValue.serverTimestamp()});
-  return {questionId:ref.id};
+  const uid = reqAuth(request);
+  const itemId = idOf(request, 'itemId');
+  const question = request.data.question;
+
+  if (
+    typeof question !== 'string' ||
+    question.trim().length < 3 ||
+    question.trim().length > 500
+  ) {
+    fail('invalid-argument', 'Question must be 3-500 characters');
+  }
+
+  const item = await db.collection(ITEM_COLLECTION).doc(itemId).get();
+
+  if (!item.exists) {
+    fail('not-found', 'Item not found');
+  }
+
+  const ownerId = item.data().ownerId || item.data().userId;
+
+  if (!ownerId) {
+    fail('failed-precondition', 'Listing owner not found');
+  }
+
+  if (uid === ownerId) {
+    fail('permission-denied', 'Owners cannot ask their own listings');
+  }
+
+  const ref = db.collection('itemQuestions').doc();
+
+  await ref.create({
+    questionId: ref.id,
+    itemId,
+    authorId: uid,
+    question: question.trim(),
+    answer: '',
+    createdAt: Date.now()
+  });
+
+  return { questionId: ref.id };
 });
 
 exports.sharelyAnswerPublicQuestion = sharelyCall(async request => {
-  const uid=reqAuth(request),id=idOf(request,'questionId'),answer=request.data.answer;
-  if (typeof answer!=='string' || answer.trim().length<1 || answer.length>500)
-    fail('invalid-argument','Answer must be 1-500 characters');
-  const ref=db.collection('sharelyPublicQuestions').doc(id);
-  await db.runTransaction(async tx=>{
-    const snap=await tx.get(ref);
-    if (!snap.exists) fail('not-found','Question not found');
-    if (snap.data().ownerId!==uid) fail('permission-denied','Only listing owner may answer');
-    tx.update(ref,{answer:answer.trim(),answeredAt:admin.firestore.FieldValue.serverTimestamp()});
+  const uid = reqAuth(request);
+  const id = idOf(request, 'questionId');
+  const answer = request.data.answer;
+
+  if (
+    typeof answer !== 'string' ||
+    answer.trim().length < 2 ||
+    answer.trim().length > 1000
+  ) {
+    fail('invalid-argument', 'Answer must be 2-1000 characters');
+  }
+
+  const ref = db.collection('itemQuestions').doc(id);
+
+  await db.runTransaction(async tx => {
+    const snap = await tx.get(ref);
+
+    if (!snap.exists) {
+      fail('not-found', 'Question not found');
+    }
+
+    const data = snap.data();
+
+    const item = await tx.get(
+      db.collection(ITEM_COLLECTION).doc(data.itemId)
+    );
+
+    if (!item.exists) {
+      fail('not-found', 'Item not found');
+    }
+
+    const ownerId = item.data().ownerId || item.data().userId;
+
+    if (ownerId !== uid) {
+      fail('permission-denied', 'Only listing owner may answer');
+    }
+
+    if (data.answer !== '') {
+      fail('failed-precondition', 'Question already answered');
+    }
+
+    tx.update(ref, {
+      answer: answer.trim(),
+      answeredAt: Date.now()
+    });
   });
-  return {answered:true};
+
+  return { answered: true };
 });
 
 exports.sharelyReportContent = sharelyCall(async request => {
@@ -337,7 +403,7 @@ exports.sharelyReportContent = sharelyCall(async request => {
     fail('invalid-argument','Invalid report');
   const ref=db.collection('sharelyReports').doc();
   await ref.create({reporterId:uid,targetId,targetType,reason,description:description.trim(),
-    status:'OPEN',createdAt:admin.firestore.FieldValue.serverTimestamp()});
+    status:'OPEN',createdAt:FieldValue.serverTimestamp()});
   // Reports remain private for admin moderation, with no automatic police disclosure.
   return {reportId:ref.id,submitted:true};
 });
