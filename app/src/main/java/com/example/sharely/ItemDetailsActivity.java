@@ -295,6 +295,9 @@ public class ItemDetailsActivity extends SharelyChromeActivity {
                 currentItem = item;
                 itemLoaded = true;
                 renderItem(item);
+                // Owner controls must not wait for the separate booking query.
+                // Otherwise slow/unavailable reservation data can hide the badge.
+                updateUi();
 
                 // The repository exposes accepted/active reservations via the
                 // item's ledger to borrowers, without exposing other users' UIDs.
